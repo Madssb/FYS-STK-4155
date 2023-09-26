@@ -7,7 +7,55 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 from utilities import my_figsize
 
-def design_matrix_polynomial_xy(x: np.ndarray, y: np.ndarray, degree: int,
+
+def mean_squared_error(y: np.ndarray, model: np.ndarray) -> float:
+  """
+  Compute mean squared error for some model w.r.t  its analytical expression.
+
+
+  Parameters
+  ----------
+  y: x-dimensional array of floats
+    Analytical expression
+  model: x-dimensional array of floats
+    Model
+      
+
+  Returns
+  -------
+      Mean squared error for model.
+  """
+  err_msg = f"{y.shape=} and {model.shape=}, expected same shapes."
+  assert y.shape == model.shape, err_msg
+  return np.mean((y - model)**2)
+
+
+def r2_score(y: np.ndarray, model: np.ndarray) -> float:
+  """
+  Compute R2-score for some model w.r.t its analytical expression.
+
+
+  Parameters
+  ----------
+  y: x-dimensional array of floats
+    Analytical expression.
+  model: x-dimensional array of floats
+    Model.
+      
+
+  Returns
+  -------
+    R2-score for the model.
+  """
+  err_msg = f"{y.shape=} and {model.shape=}, expected same shapes."
+  assert y.shape == model.shape, err_msg
+  mse = mean_squared_error(y, model)
+  mean_y = np.mean(y)*np.ones_like(y)
+  return 1 - mse**2/mean_squared_error(y, mean_y)
+
+
+
+def features_polynomial_xy(x: np.ndarray, y: np.ndarray, degree: int,
                                 scale=True) -> np.ndarray:
   """
   Construct design matrix for 2 dim polynomial:
@@ -38,43 +86,43 @@ def design_matrix_polynomial_xy(x: np.ndarray, y: np.ndarray, degree: int,
   assert isinstance(degree, (int, np.int64))
   len_x = x.shape[0]
   len_y = y.shape[0]
-  design_matrix_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
+  features_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
   for i, x_ in enumerate(x):
     for j, y_ in enumerate(y):
       row = len_y*i + j
       for k in range(degree + 1):
         for l in range(degree + 1):
           col = k*(degree+1) + l
-          design_matrix_xy[row, col] = x_**k*y_**l
+          features_xy[row, col] = x_**k*y_**l
   if scale:
-    design_matrix_xy -= np.mean(design_matrix_xy, axis=1, keepdims=True)
-  return design_matrix_xy
+    features_xy -= np.mean(features_xy, axis=1, keepdims=True)
+  return features_xy
 
 
-def test_design_matrix_polynomial_xy():
+def test_features_polynomial_xy():
   """ 
-  Ensures design_matrix_polynomial_xy() is working as intended.
+  Ensures features_polynomial_xy() is working as intended.
   """
   x = np.array([2, 3])
   y = np.array([4, 5])
-  expected_design_matrix = np.array([[1, 4, 2, 8],
+  expected_features = np.array([[1, 4, 2, 8],
                                      [1, 5, 2, 10],
                                      [1, 4, 3, 12],
                                      [1, 5, 3, 15]])
-  design_matrix = design_matrix_polynomial_xy(x, y, 1, scale=False)
-  assert design_matrix.shape == (4, 4)
-  print(design_matrix)
-  assert (design_matrix == expected_design_matrix).all()
+  features = features_polynomial_xy(x, y, 1, scale=False)
+  assert features.shape == (4, 4)
+  print(features)
+  assert (features == expected_features).all()
 
 
-def ols_regression(design_matrix: np.ndarray, y: np.ndarray) -> np.ndarray:
+def ols_regression(features: np.ndarray, y: np.ndarray) -> np.ndarray:
   """
   Compute the optimal parameters per Ordinary Least Squares regression.
 
 
   Parameters
   ----------
-  design_matrix: two-dimensional array of floats
+  features: two-dimensional array of floats
     design matrix for n-dimensional mesh
     Two dimensional numpy array
   y: one-dimensional array of floats
@@ -90,25 +138,25 @@ def ols_regression(design_matrix: np.ndarray, y: np.ndarray) -> np.ndarray:
   Raises
   ------
   AssertionError
-      shapes of design_matrix or y are not permitted.
+      shapes of features or y are not permitted.
 
     
   """
-  assert len(design_matrix.shape) == 2, "requires nxm dimensional array."
+  assert len(features.shape) == 2, "requires nxm dimensional array."
   assert len(y.shape) == 1, "requires n dimensional array."
   return np.linalg.pinv(
-      np.transpose(design_matrix) @ design_matrix
-  ) @ np.transpose(design_matrix) @ y
+      np.transpose(features) @ features
+  ) @ np.transpose(features) @ y
 
 
-def ridge_regression(design_matrix: np.ndarray, y: np.ndarray,
+def ridge_regression(features: np.ndarray, y: np.ndarray,
                      hyperparameter: float) -> np.ndarray:
   """
   Computes the optimal parameters per Ridge regression.
 
   Parameters
   ----------
-  design_matrix
+  features
     Two-dimensional numpy array
   y
     One-dimensional numpy array
@@ -123,18 +171,18 @@ def ridge_regression(design_matrix: np.ndarray, y: np.ndarray,
   Raises
   ------
   AssertionError
-    shapes of design_matrix or y are not permitted, or hyperparameter is not
+    shapes of features or y are not permitted, or hyperparameter is not
     float.
 
 
   """
-  assert len(design_matrix.shape) == 2, "requires nxm dimensional array."
+  assert len(features.shape) == 2, "requires nxm dimensional array."
   assert len(y.shape) == 1, "requires n dimensional array"
   assert isinstance(hyperparameter, float), "must be float"
   return np.linalg.pinv(
-      np.transpose(design_matrix) @ design_matrix
-      + np.identity(design_matrix.shape[1])*hyperparameter
-  ) @ np.transpose(design_matrix) @ y
+      np.transpose(features) @ features
+      + np.identity(features.shape[1])*hyperparameter
+  ) @ np.transpose(features) @ y
 
 
 
@@ -167,7 +215,7 @@ class LinearRegression2D:
     self.z_flat = z.ravel()
     self.scale= scale
 
-  def design_matrix_polynomial_xy(
+  def features_polynomial_xy(
       self, x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
     """
     Construct design matrix for 2 dim polynomial:
@@ -198,17 +246,17 @@ class LinearRegression2D:
     assert isinstance(degree, (int, np.int64))
     len_x = x.shape[0]
     len_y = y.shape[0]
-    design_matrix_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
+    features_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
     for i, x_ in enumerate(x):
       for j, y_ in enumerate(y):
         row = len_y*i + j
         for k in range(degree + 1):
           for l in range(degree + 1):
             col = k*(degree+1) + l
-            design_matrix_xy[row, col] = x_**k*y_**l
+            features_xy[row, col] = x_**k*y_**l
     if self.scale:
-      design_matrix_xy -= np.mean(design_matrix_xy, axis=1, keepdims=True)
-    return design_matrix_xy
+      features_xy -= np.mean(features_xy, axis=1, keepdims=True)
+    return features_xy
 
   def ols_regression(self, degree: int) -> np.ndarray:
     """
@@ -228,13 +276,16 @@ class LinearRegression2D:
 
           
     """
-    design_matrix = self.design_matrix_polynomial_xy(self.x, self.y, degree)
-    design_matrix_train, design_matrix_test, z_train, z_test = train_test_split(design_matrix, self.z_flat)
+    features = self.features_polynomial_xy(self.x, self.y, degree)
+    features_train, features_test, z_train, z_test = train_test_split(
+      features, self.z_flat)
     optimal_parameters = np.linalg.pinv(
-        np.transpose(design_matrix_train) @ design_matrix_train
-    ) @ np.transpose(design_matrix_train) @ self.z_train
-    predicted_model = design_matrix_test @ optimal_parameters
-    return predicted_model
+        np.transpose(features_train) @ features_train
+    ) @ np.transpose(features_train) @ z_train
+    predicted_model = features_test @ optimal_parameters
+    mse = mean_squared_error(z_test, predicted_model)
+    r2 = r2_score(z_test, predicted_model)
+    return predicted_model, mse, r2
 
   def ridge_regression(self, degree: int, hyperparameter: float) -> np.ndarray:
     """
@@ -255,83 +306,41 @@ class LinearRegression2D:
 
 
     """
-    design_matrix_train = self.design_matrix_polynomial_xy(
-      self.x_train, self.y_train, degree)
-    design_matrix_test = self.design_matrix_polynomial_xy(
-      self.x_test, self.y_test, degree)
+    features = self.features_polynomial_xy(self.x, self.y, degree)
+    features_train, features_test, z_train, z_test = train_test_split(
+      features, self.z_flat)
     optimal_parameters =  np.linalg.pinv(
-        np.transpose(design_matrix_train) @ design_matrix_train
-        + np.identity(design_matrix_train.shape[1])*hyperparameter
-    ) @ np.transpose(design_matrix_train) @ self.z_train
-    predicted_model = design_matrix_test @ optimal_parameters
-    return predicted_model
+        np.transpose(features_train) @ features_train
+        + np.identity(features_train.shape[1])*hyperparameter
+    ) @ np.transpose(features_train) @ z_train
+    predicted_model = features_test @ optimal_parameters
+    mse = mean_squared_error(z_test, predicted_model)
+    r2 = r2_score(z_test, predicted_model)
+    return predicted_model, mse, r2
   
-  def mse(self, regression_type: str):
-    """
-    Compute the mean squared error for OLS- Ridge- or Lasso regression, as a 
-    function of polynomial degrees, and additionally the hyperparameter if the
-    regression type is Ridge. Visualizes result and
-
-
-    Parameters
-    ----------
-    regression_type: str
-      type of regression applied to data.
-    """
-    regression_type = regression_type.lower()
-    err_msg = f"{regression_type} is not ridge, lasso, or ols"
-    assert regression_type.lower() in ["ridge", "lasso", "ols"], err_msg 
-    if regression_type == "ols":
-      self.mses_ols = np.empty_like(self.degrees,dtype=float)
-      for i, degree in enumerate(self.degrees):
-        model = self.ols_regression(degree)
-        self.mses_ols[i] = np.mean((self.z_test - model)**2)
-      fig, ax = plt.subplots(figsize=my_figsize())
-      ax.plot(self.degrees, self.mses_ols, label="MSE")
-      ax.set_xlabel("Complexity")
-      ax.set_ylabel("MSE")
-      fig.savefig("mse_ols.pdf")
-    elif regression_type == "ridge":
-      self.mses_ridge = np.empty(
-        self.degrees.shape[0], self.hyperparameters.shape[0], dtype=float)
-      for i, degree in enumerate(self.degrees):
-        for j, hyperparameter in enumerate(self.hyperparameters):
-          model = self.ridge_regression(degree, hyperparameter)
-          self.mses_ridge[i][j] = np.mean((self.z_test - model)**2)
-      #visualize results
-      fig, ax = plt.subplots(figsize=my_figsize())
-      degrees_mesh, hyperparameters_mesh = np.meshgrid(
-        self.degrees, self.hyperparameters)
-      levels = np.linspace(self.mses_ridge.min(),self.mses_ridge.max(), 7)
-      contour = ax.contourf(
-        degrees_mesh, hyperparameters_mesh, self.mses_ridge.T, levels=levels)
-      ax.set_yscale("log")
-      ax.set_xlabel("Complexity")
-      ax.set_ylabel("Ridge parameter")
-      ax.grid()
-      format_func = lambda x, _: f"{x:.2f}"
-      cbar = plt.colorbar(contour, format=format_func)
-      fig.tight_layout()
-      fig.savefig("ridge_mse.pdf")
-
-  def mse_ols(self, visualize=True):
+  def mse_and_r2_ols(self, visualize=True):
     """
     Compute mean squared error for ordinary least square regression computed
     models as a function of model complexity.
     """
     self.mses_ols = np.empty_like(self.degrees,dtype=float)
+    self.r2s_ols = np.empty_like(self.degrees,dtype=float)
     for i, degree in enumerate(self.degrees):
-      model = self.ols_regression(degree)
-      self.mses_ols[i] = np.mean((self.z_test - model)**2)
+      model, mse, r2 = self.ols_regression(degree)
+      self.mses_ols[i] = mse
+      self.r2s_ols[i] = r2
     if not visualize:
       return
+    
+
+  def visualize_mse(self):
     fig, ax = plt.subplots(figsize=my_figsize())
     ax.plot(self.degrees, self.mses_ols, label="MSE")
     ax.set_xlabel("Complexity")
     ax.set_ylabel("MSE")
     fig.savefig("mse_ols.pdf")  
 
-  def mse_ridge(self, visualize=True):
+  def mse_and_r2_ridge(self, visualize=True):
     """
     Compute mean squared error for Ridge regression computed models as a
     function of model complexity.
@@ -340,8 +349,8 @@ class LinearRegression2D:
       self.degrees.shape[0], self.hyperparameters.shape[0], dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
-        model = self.ridge_regression(degree, hyperparameter)
-        self.mses_ridge[i][j] = np.mean((self.z_test - model)**2)
+        model, mse, r2 = self.ridge_regression(degree, hyperparameter)
+        self.mses_ridge[i][j] = mse
     #visualize results
     if not visualize:
       return

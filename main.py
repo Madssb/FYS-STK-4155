@@ -3,7 +3,7 @@ Solve project here
 """
 import numpy as np
 from utilities import (franke_function, mean_squared_error, r2_score, my_figsize)
-from regression import (ols_regression, design_matrix_polynomial_xy, ridge_regression)
+from regression import (ols_regression, features_polynomial_xy, ridge_regression)
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
@@ -43,12 +43,12 @@ def ols_franke_function():
   mock_data = analytic + noise
   data_flat = mock_data.ravel()
   for idx, polynomial_degree in enumerate(polynomial_degrees):
-    design_matrix = design_matrix_polynomial_xy(
+    features = features_polynomial_xy(
         x, y, polynomial_degree, scale=False)
-    design_matrix_train, design_matrix_test, data_train, data_test = (
-      train_test_split(design_matrix, data_flat))
-    ols_parameters = ols_regression(design_matrix_train, data_train)
-    ols_model_predicted = design_matrix_test @ ols_parameters
+    features_train, features_test, data_train, data_test = (
+      train_test_split(features, data_flat))
+    ols_parameters = ols_regression(features_train, data_train)
+    ols_model_predicted = features_test @ ols_parameters
     mses[idx] = mean_squared_error(data_test, ols_model_predicted)
     r2s[idx] = r2_score(data_test, ols_model_predicted)
     print(
@@ -81,14 +81,14 @@ def ridge_franke_function():
   mse = np.empty((polynomial_degrees.shape[0],hyperparams.shape[0]),dtype=float)
   r2s = np.empty_like(mse, dtype=float)
   for pol_idx, polynomial_degree in enumerate(polynomial_degrees):
-    design_matrix = design_matrix_polynomial_xy(
+    features = features_polynomial_xy(
         x, y, polynomial_degree, scale=False)
-    design_matrix_train, design_matrix_test, data_train, data_test = (
-      train_test_split(design_matrix, data_flat))
+    features_train, features_test, data_train, data_test = (
+      train_test_split(features, data_flat))
     for hyp_idx, hyperparam in enumerate(hyperparams):
       ridge_parameters = ridge_regression(
-        design_matrix_train,data_train, hyperparam)
-      rigdge_model_predicted = design_matrix_test @ ridge_parameters
+        features_train,data_train, hyperparam)
+      rigdge_model_predicted = features_test @ ridge_parameters
       mse[pol_idx,hyp_idx] = mean_squared_error(data_test, rigdge_model_predicted)
       r2s[pol_idx, hyp_idx] = r2_score(data_test, rigdge_model_predicted)
   
@@ -121,6 +121,6 @@ def main():
                                        degrees, hyperparameters)
   linreg_instance.mse_ols()
 if __name__ == '__main__':
-  #ols_franke_function()
-  #ridge_franke_function()
-  main()
+  ols_franke_function()
+  ridge_franke_function()
+  #main()
