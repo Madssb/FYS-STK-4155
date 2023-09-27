@@ -119,8 +119,11 @@ def main():
   hyperparameters = np.logspace(-4,4,10)
   linreg_instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
-  linreg_instance.mse_ols()
+  linreg_instance.visualize_mse_ols()
+  linreg_instance.visualize_mse_ridge()
+
+
 if __name__ == '__main__':
-  ols_franke_function()
-  ridge_franke_function()
-  #main()
+  #ols_franke_function()
+  #ridge_franke_function()
+  main()

@@ -54,9 +54,8 @@ def r2_score(y: np.ndarray, model: np.ndarray) -> float:
   return 1 - mse**2/mean_squared_error(y, mean_y)
 
 
-
 def features_polynomial_xy(x: np.ndarray, y: np.ndarray, degree: int,
-                                scale=True) -> np.ndarray:
+                           scale=True) -> np.ndarray:
   """
   Construct design matrix for 2 dim polynomial:
   (1 + y + ... y**p) + x(1 + y + ... y**p) + ... + x**p(1 + y + ... y**p),
@@ -106,9 +105,9 @@ def test_features_polynomial_xy():
   x = np.array([2, 3])
   y = np.array([4, 5])
   expected_features = np.array([[1, 4, 2, 8],
-                                     [1, 5, 2, 10],
-                                     [1, 4, 3, 12],
-                                     [1, 5, 3, 15]])
+                                [1, 5, 2, 10],
+                                [1, 4, 3, 12],
+                                [1, 5, 3, 15]])
   features = features_polynomial_xy(x, y, 1, scale=False)
   assert features.shape == (4, 4)
   print(features)
@@ -185,10 +184,8 @@ def ridge_regression(features: np.ndarray, y: np.ndarray,
   ) @ np.transpose(features) @ y
 
 
-
-
 class LinearRegression2D:
-  def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, 
+  def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray,
                degrees: np.ndarray, hyperparameters: np.ndarray,
                scale=True):
     """
@@ -213,10 +210,10 @@ class LinearRegression2D:
     self.y = y
     self.z = z
     self.z_flat = z.ravel()
-    self.scale= scale
+    self.scale = scale
 
   def features_polynomial_xy(
-      self, x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
+          self, x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
     """
     Construct design matrix for 2 dim polynomial:
     (1 + y + ... y**p) + x(1 + y + ... y**p) + ... + x**p(1 + y + ... y**p),
@@ -271,14 +268,19 @@ class LinearRegression2D:
     
     Returns
     -------
-    numpy.ndarray
-        Optimal parameters as predicted by Ridge.
-
-          
+    Tuple[np.ndarray, float, float]
+        predicted_model: numpy.ndarray
+            Predicted values for the test set.
+        mse: float
+            Mean Squared Error.
+        r2: float
+            R-squared score.
+   
+    
     """
     features = self.features_polynomial_xy(self.x, self.y, degree)
     features_train, features_test, z_train, z_test = train_test_split(
-      features, self.z_flat)
+        features, self.z_flat)
     optimal_parameters = np.linalg.pinv(
         np.transpose(features_train) @ features_train
     ) @ np.transpose(features_train) @ z_train
@@ -308,8 +310,8 @@ class LinearRegression2D:
     """
     features = self.features_polynomial_xy(self.x, self.y, degree)
     features_train, features_test, z_train, z_test = train_test_split(
-      features, self.z_flat)
-    optimal_parameters =  np.linalg.pinv(
+        features, self.z_flat)
+    optimal_parameters = np.linalg.pinv(
         np.transpose(features_train) @ features_train
         + np.identity(features_train.shape[1])*hyperparameter
     ) @ np.transpose(features_train) @ z_train
@@ -317,54 +319,57 @@ class LinearRegression2D:
     mse = mean_squared_error(z_test, predicted_model)
     r2 = r2_score(z_test, predicted_model)
     return predicted_model, mse, r2
-  
-  def mse_and_r2_ols(self, visualize=True):
+
+  def mse_and_r2_ols(self):
     """
     Compute mean squared error for ordinary least square regression computed
     models as a function of model complexity.
     """
-    self.mses_ols = np.empty_like(self.degrees,dtype=float)
-    self.r2s_ols = np.empty_like(self.degrees,dtype=float)
+    self.mses_ols = np.empty_like(self.degrees, dtype=float)
+    self.r2s_ols = np.empty_like(self.degrees, dtype=float)
     for i, degree in enumerate(self.degrees):
       model, mse, r2 = self.ols_regression(degree)
       self.mses_ols[i] = mse
       self.r2s_ols[i] = r2
-    if not visualize:
-      return
-    
 
-  def visualize_mse(self):
+  def visualize_mse_ols(self):
+    if not hasattr(self, 'mses_ols'):
+      self.mse_and_r2_ols()
     fig, ax = plt.subplots(figsize=my_figsize())
     ax.plot(self.degrees, self.mses_ols, label="MSE")
     ax.set_xlabel("Complexity")
     ax.set_ylabel("MSE")
-    fig.savefig("mse_ols.pdf")  
+    fig.tight_layout()
+    fig.savefig("mse_ols.pdf")
 
-  def mse_and_r2_ridge(self, visualize=True):
+  def mse_and_r2_ridge(self):
     """
     Compute mean squared error for Ridge regression computed models as a
     function of model complexity.
     """
     self.mses_ridge = np.empty(
-      self.degrees.shape[0], self.hyperparameters.shape[0], dtype=float)
+      (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
+    self.r2s_ridge = np.empty_like(self.mses_ridge, dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
         model, mse, r2 = self.ridge_regression(degree, hyperparameter)
-        self.mses_ridge[i][j] = mse
-    #visualize results
-    if not visualize:
-      return
-    fig, ax = plt.subplots(figsize=my_figsize())
-    degrees_mesh, hyperparameters_mesh = np.meshgrid(
-      self.degrees, self.hyperparameters)
-    levels = np.linspace(self.mses_ridge.min(),self.mses_ridge.max(), 7)
-    contour = ax.contourf(
-      degrees_mesh, hyperparameters_mesh, self.mses_ridge.T, levels=levels)
-    ax.set_yscale("log")
-    ax.set_xlabel("Complexity")
-    ax.set_ylabel("Ridge parameter")
-    ax.grid()
-    format_func = lambda x, _: f"{x:.2f}"
-    cbar = plt.colorbar(contour, format=format_func)
-    fig.tight_layout()
-    fig.savefig("ridge_mse.pdf")
+        self.mses_ridge[i, j] = mse
+        self.r2s_ridge[i, j] = r2
+
+  def visualize_mse_ridge(self):
+      if not hasattr(self, 'mses_ridge'):
+        self.mse_and_r2_ridge()
+      fig, ax = plt.subplots(figsize=my_figsize())
+      degrees_mesh, hyperparameters_mesh = np.meshgrid(
+          self.degrees, self.hyperparameters)
+      levels = np.linspace(self.mses_ridge.min(), self.mses_ridge.max(), 7)
+      contour = ax.contourf(
+          degrees_mesh, hyperparameters_mesh, self.mses_ridge.T, levels=levels)
+      ax.set_yscale("log")
+      ax.set_xlabel("Complexity")
+      ax.set_ylabel("Ridge parameter")
+      ax.grid()
+      def format_func(x, _): return f"{x:.2f}"
+      cbar = plt.colorbar(contour, format=format_func)
+      fig.tight_layout()
+      fig.savefig("ridge_mse.pdf")
