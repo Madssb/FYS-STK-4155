@@ -247,10 +247,6 @@ class LinearRegression2D:
     model = Lasso()
     model.fit(features_train, z_train)
     predicted_model = model.predict(features_test)
-    # optimal_parameters = np.where(
-    #   z_train > hyperparameter/2, z_train - hyperparameter/2, 
-    #   np.where(z_train < -hyperparameter/2, z_train + hyperparameter/2, 0))
-    # predicted_model = features_test @ optimal_parameters
     mse = mean_squared_error(z_test, predicted_model)
     r2 = r2_score(z_test, predicted_model)
     return predicted_model, mse, r2 

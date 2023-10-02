@@ -15,6 +15,7 @@ from regression import LinearRegression2D
 
 
 def main():
+  np.random.seed(2023)
   x = np.arange(0, 1, 0.05)
   y = np.arange(0, 1, 0.05) 
   x_mesh, y_mesh = np.meshgrid(x, y)

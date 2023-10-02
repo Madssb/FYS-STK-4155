@@ -1,3 +1,8 @@
+import numpy as np
+
+
+
+
 def features_polynomial_xy(x: np.ndarray, y: np.ndarray, degree: int,
                            scale=True) -> np.ndarray:
   """
