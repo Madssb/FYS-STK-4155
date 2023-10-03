@@ -57,8 +57,11 @@ def r2_score(y: np.ndarray, model: np.ndarray) -> float:
 
 
 class LinearRegression2D:
-  def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray,
-               degrees: np.ndarray, hyperparameters: np.ndarray,
+  """
+  TBA
+  """
+  def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray=None,
+               degrees: np.ndarray=None, hyperparameters: np.ndarray=None,
                center=True):
     """
     Parameters
@@ -78,33 +81,64 @@ class LinearRegression2D:
     """
     assert len(x.shape) == 1, "requires m dimensional array."
     assert len(y.shape) == 1, "requires n dimensional array."
-    err_msg = f"{degrees.dtype=}, must be integer."
-    assert np.issubdtype(degrees.dtype, np.integer), err_msg
-    err_msg = f"{z.shape=}, requires mxn dimensional array."
-    assert z.shape == (x.shape[0], y.shape[0]), err_msg
-    self.degrees = degrees
-    self.hyperparameters = hyperparameters
+    if degrees is not None:
+      err_msg = f"{degrees.dtype=}, must be integer."
+      assert np.issubdtype(degrees.dtype, np.integer), err_msg
+    if z is not None:
+      err_msg = f"{z.shape=}, requires mxn dimensional array."
+      assert z.shape == (x.shape[0], y.shape[0]), err_msg
+      self.z_flat = z.ravel()
     self.x = x
     self.y = y
     self.z = z
-    self.z_flat = z.ravel()
+    self.degrees = degrees
+    self.hyperparameters = hyperparameters
     self.center = center
 
-  def features_polynomial_xy(
-          self, x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
+  # def features_polynomial_xy(self, degree: int) -> np.ndarray:
+  #   """
+  #   Construct design matrix for two-dimensional polynomial, where columns are:
+  #   (1 + y + ... y**p) + x(1 + y + ... y**p) + ... + x**p(1 + y + ... y**p),
+  #   where p is degree for polynomial, x = x_i and y = y_j, indexed such that
+  #   row index k  =  len(y)*i + j.
+
+
+  #   Parameters
+  #   ----------
+  #   degree: int
+  #     Polynomial degree for model.
+
+
+  #   Returns
+  #   -------
+  #   two-dimensional-array
+  #     Design matrix for two dimensional polynomial of specified degree. 
+
+    
+  #   """
+  #   assert isinstance(degree, (int, np.int64))
+  #   features_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
+  #   for i, x_ in enumerate(x):
+  #     for j, y_ in enumerate(y):
+  #       row = len_y*i + j
+  #       for k in range(degree + 1):
+  #         for l in range(degree + 1):
+  #           col = k*(degree+1) + l
+  #           features_xy[row, col] = x_**k*y_**l
+  #   if self.center:
+  #     features_xy -= np.mean(features_xy, axis=1, keepdims=True)
+  #   return features_xy
+
+  def features_polynomial_xy(self, degree: int) -> np.ndarray:
     """
     Construct design matrix for two-dimensional polynomial, where columns are:
-    (1 + y + ... y**p) + x(1 + y + ... y**p) + ... + x**p(1 + y + ... y**p),
+    (1 + y + ... y**p) + x(1 + y + ... y**p-1) + ... + x**p,
     where p is degree for polynomial, x = x_i and y = y_j, indexed such that
     row index k  =  len(y)*i + j.
 
 
     Parameters
     ----------
-    x: one-dimensional array of floats
-      X-dimension mesh
-    y: one-dimensional array of floats
-      Y-dimension mesh.
     degree: int
       Polynomial degree for model.
 
@@ -116,19 +150,18 @@ class LinearRegression2D:
 
     
     """
-    assert len(x.shape) == 1, "requires n dimensional array."
-    assert len(y.shape) == 1, "requires n dimensional array."
     assert isinstance(degree, (int, np.int64))
-    len_x = x.shape[0]
-    len_y = y.shape[0]
-    features_xy = np.empty((len_x*len_y, (degree+1)**2), dtype=float)
-    for i, x_ in enumerate(x):
-      for j, y_ in enumerate(y):
+    len_x = self.x.shape[0]
+    len_y = self.y.shape[0]
+    features_xy = np.empty((len_x*len_y, int((degree+1)*(degree+2)/2)), dtype=float)
+    for i, x_ in enumerate(self.x):
+      for j, y_ in enumerate(self.y):
         row = len_y*i + j
+        col_count = 0
         for k in range(degree + 1):
-          for l in range(degree + 1):
-            col = k*(degree+1) + l
-            features_xy[row, col] = x_**k*y_**l
+          for l in range(degree + 1 - k):
+            features_xy[row, col_count] = x_**k*y_**l
+            col_count += 1
     if self.center:
       features_xy -= np.mean(features_xy, axis=1, keepdims=True)
     return features_xy
@@ -158,7 +191,8 @@ class LinearRegression2D:
    
     
     """
-    features = self.features_polynomial_xy(self.x, self.y, degree)
+    assert self.z is not None, "specifying z is required for  ols"
+    features = self.features_polynomial_xy(degree)
     features_train, features_test, z_train, z_test = train_test_split(
         features, self.z_flat)
     optimal_parameters = np.linalg.pinv(
@@ -199,7 +233,8 @@ class LinearRegression2D:
 
 
     """
-    features = self.features_polynomial_xy(self.x, self.y, degree)
+    assert self.z is not None, "specifying z is required for  ridge"
+    features = self.features_polynomial_xy(degree)
     features_train, features_test, z_train, z_test = train_test_split(
         features, self.z_flat)
     optimal_parameters = np.linalg.pinv(
@@ -241,7 +276,8 @@ class LinearRegression2D:
 
 
     """
-    features = self.features_polynomial_xy(self.x, self.y, degree)
+    assert self.z is not None, "specifying z is required for lasso"
+    features = self.features_polynomial_xy(degree)
     features_train, features_test, z_train, z_test = train_test_split(
         features, self.z_flat)
     model = Lasso()
@@ -256,6 +292,8 @@ class LinearRegression2D:
     Compute mean squared error for ordinary least square regression computed
     models as a function of model complexity.
     """
+    err_msg = "specying degrees is required for using mse_and_r2_ols"
+    assert self.degrees is not None, err_msg
     self.mses_ols = np.empty_like(self.degrees, dtype=float)
     self.r2s_ols = np.empty_like(self.degrees, dtype=float)
     for i, degree in enumerate(self.degrees):
@@ -268,6 +306,9 @@ class LinearRegression2D:
     Compute mean squared error for Ridge regression computed models as a
     function of model complexity.
     """
+    err_msg = """specifying degrees and hyperparameters is required for using 
+    mse_and_r2_ridge"""
+    assert self.degrees is not None, err_msg
     self.mses_ridge = np.empty(
       (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
     self.r2s_ridge = np.empty_like(self.mses_ridge, dtype=float)
@@ -283,6 +324,9 @@ class LinearRegression2D:
     Compute mean squared error for Lasso regression computed models as a
     function of model complexity.
     """
+    err_msg = """specifying degrees and hyperparameters is required for using 
+    mse_and_r2_lasso"""
+    assert self.degrees is not None, err_msg
     self.mses_lasso = np.empty(
       (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
     self.r2s_lasso = np.empty_like(self.mses_lasso, dtype=float)
@@ -301,7 +345,7 @@ class LinearRegression2D:
     ax.set_xlabel("Polynomial degree")
     ax.set_ylabel("MSE")
     fig.tight_layout()
-    fig.savefig("mse_ols.pdf")
+    fig.savefig("ols_mse.pdf")
 
   def visualize_mse_ridge(self):
     if not hasattr(self, 'mses_ridge'):
@@ -340,3 +384,14 @@ class LinearRegression2D:
     cbar.set_label('MSE')
     fig.tight_layout()
     fig.savefig("lasso_mse.pdf")
+
+def test_polynomial_features_xy():
+  # simplest case test
+  x = np.array([1],dtype=float)
+  y = np.array([2],dtype=float)
+  simple_instance = LinearRegression2D(x, y,center=False)
+  degree = 1
+  expected = np.array([[1, 2, 1]], dtype=float)
+  computed = simple_instance.features_polynomial_xy(degree)
+  assert np.allclose(expected,computed)
+  assert expected.shape == computed.shape
