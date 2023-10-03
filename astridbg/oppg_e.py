@@ -24,9 +24,9 @@ maxdegree = 5
 
 
 # Make data set.
-x = np.arange(0, 1, 0.05)
-y = np.arange(0, 1, 0.05)
-z = FrankeFunction(x, y) + np.random.normal(0, 0.1, np.shape(x))
+x = np.linspace(0, 1, n)
+y = np.linspace(0, 1, n)
+z = FrankeFunction(x, y) + np.random.normal(0, 0.1, n)
 
 error = np.zeros(maxdegree)
 bias = np.zeros(maxdegree)
@@ -58,5 +58,5 @@ plt.xlabel("Polynomial degree // complexity")
 plt.ylabel("Error")
 #plt.yscale("log")
 plt.legend()
-#plt.savefig("figures/bias_variance.png")
+plt.savefig("figures/bias_variance.png")
 plt.show()
