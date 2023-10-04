@@ -345,7 +345,7 @@ class LinearRegression2D:
     ax.set_xlabel("Polynomial degree")
     ax.set_ylabel("MSE")
     fig.tight_layout()
-    fig.savefig("ols_mse.pdf")
+    fig.savefig("../plots/ols_mse.pdf")
 
   def visualize_mse_ridge(self):
     if not hasattr(self, 'mses_ridge'):
@@ -364,7 +364,7 @@ class LinearRegression2D:
     cbar = plt.colorbar(contour, format=format_func)
     cbar.set_label('MSE')
     fig.tight_layout()
-    fig.savefig("ridge_mse.pdf")
+    fig.savefig("../plots/ridge_mse.pdf")
 
   def visualize_mse_lasso(self):
     if not hasattr(self, 'mses_lasso'):
@@ -383,7 +383,7 @@ class LinearRegression2D:
     cbar = plt.colorbar(contour, format=format_func)
     cbar.set_label('MSE')
     fig.tight_layout()
-    fig.savefig("lasso_mse.pdf")
+    fig.savefig("../plots/lasso_mse.pdf")
 
 def test_polynomial_features_xy():
   # simplest case test
