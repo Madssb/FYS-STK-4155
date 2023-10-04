@@ -52,23 +52,25 @@ d. Retain the evaluation score and discard the model
 
 """
 
-def kfold_split(x, k):
-    n = len(x)
 
+
+def kfold_split(z, k):
+
+    n = len(z)
 
     # shuffle indices
-    idx = np.random.permutation(range(n))
+    idx = np.random.permutation(np.arange(n))
 
     # split indices into k groups
-    idxes = np.split(idx[:k*(n//k)], k)
-    
-    test_idx = idxes
-    train_idx = np.zeros((k,np.shape(idxes)[1])) 
-    print(train_idx)
+    idx_groups = np.array_split(idx, k)
 
-    return test_idx
+    for g in range(k):
+        test_idx = idx_groups[g]
+        train_idx = np.concatenate([idx_groups[h] for h in range(k) if h != g])
 
-print(np.shape(kfold_split(x, 4)))
+    return train_idx, test_idx
+
+train_idx, test_idx = kfold_split(x, 4)
 
 
 """
@@ -92,7 +94,6 @@ def train_test_split_numpy(inputs, labels, train_size, test_size):
 x = np.linspace(0, 1, n)
 y = np.linspace(0, 1, n)
 z = FrankeFunction(x, y) + np.random.normal(0, 0.1, n)
-
 error = np.zeros(maxdegree)
 bias = np.zeros(maxdegree)
 variance = np.zeros(maxdegree)
