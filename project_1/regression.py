@@ -337,7 +337,7 @@ class LinearRegression2D:
         self.r2s_lasso[i, j] = r2
     return self.mses_lasso, self.r2s_lasso
 
-  def visualize_mse_ols(self):
+  def visualize_mse_ols(self, show=False, save=True):
     if not hasattr(self, 'mses_ols'):
       self.mse_and_r2_ols()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -345,9 +345,13 @@ class LinearRegression2D:
     ax.set_xlabel("Polynomial degree")
     ax.set_ylabel("MSE")
     fig.tight_layout()
-    fig.savefig("../plots/ols_mse.pdf")
+    if show == True:
+      plt.show()
+    if save == True:
+      fig.savefig("../plots/ols_mse.pdf")
+      
 
-  def visualize_mse_ridge(self):
+  def visualize_mse_ridge(self, show=False, save=True):
     if not hasattr(self, 'mses_ridge'):
       self.mse_and_r2_ridge()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -364,9 +368,12 @@ class LinearRegression2D:
     cbar = plt.colorbar(contour, format=format_func)
     cbar.set_label('MSE')
     fig.tight_layout()
-    fig.savefig("../plots/ridge_mse.pdf")
+    if show == True:
+      plt.show()
+    if save == True:
+      fig.savefig("../plots/ridge_mse.pdf")
 
-  def visualize_mse_lasso(self):
+  def visualize_mse_lasso(self, show=False, save=True):
     if not hasattr(self, 'mses_lasso'):
       self.mse_and_r2_lasso()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -383,7 +390,10 @@ class LinearRegression2D:
     cbar = plt.colorbar(contour, format=format_func)
     cbar.set_label('MSE')
     fig.tight_layout()
-    fig.savefig("../plots/lasso_mse.pdf")
+    if show == True:
+      plt.show()
+    if save == True:
+      fig.savefig("../plots/lasso_mse.pdf")
 
 def test_polynomial_features_xy():
   # simplest case test

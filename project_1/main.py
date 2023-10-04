@@ -33,11 +33,11 @@ def main():
   linreg_instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
   # Task a
-  linreg_instance.visualize_mse_ols()
+  linreg_instance.visualize_mse_ols(show=True, save=False)
   # Task b
-  linreg_instance.visualize_mse_ridge()
+  linreg_instance.visualize_mse_ridge(show=True, save=False)
   # Task c
-  linreg_instance.visualize_mse_lasso()
+  linreg_instance.visualize_mse_lasso(show=True, save=False)
 
 
 if __name__ == '__main__':
