@@ -41,6 +41,6 @@ def main():
 
 
 if __name__ == '__main__':
-  #ols_franke_function()
+  #ols_franke_function()temporary_name
   #ridge_franke_function()
   main() 
