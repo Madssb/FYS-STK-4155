@@ -249,7 +249,7 @@ class LinearRegression2D:
       assert z_train is not None, "z_train cannot be None"
       assert features_test is not None, "features_test cannot be None"
       assert features_train is not None, "features_train cannot be None"
-    model = Lasso()
+    model = Lasso(alpha=hyperparameter)
     model.fit(features_train, z_train)
     predicted_model = model.predict(features_test)
     return predicted_model
