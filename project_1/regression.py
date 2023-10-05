@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This model contains the regression functions pertaining to project 1.
 """
