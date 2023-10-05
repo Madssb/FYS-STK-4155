@@ -364,6 +364,46 @@ class LinearRegression2D:
     if save == True:
       fig.savefig("../plots/lasso_mse.pdf")
 
+  def cross_validation(self, degree: int, k: int, method='ols', hyperparameter=None):
+    features = self.features_polynomial_xy(degree)
+    n = len(self.z_flat)
+    mses = np.empty(k)
+    r2s = np.empty(k)
+
+    # shuffle indices
+    idx = np.random.permutation(np.arange(n))
+    # split indices into k groups
+    idx_groups = np.array_split(idx, k)
+
+    for g in range(k):
+      test_idx = idx_groups[g]
+      train_idx = np.concatenate([idx_groups[h] for h in range(k) if h != g])
+
+      features_train = features[train_idx,:]
+      features_test = features[test_idx,:]
+      z_train = self.z_flat[train_idx]
+      z_test = self.z_flat[test_idx]
+
+      if method == 'ols':
+        prediction = self.ols(degree, initialized_features=False, 
+          features_train=features_train, features_test=features_test, z_train=z_train)
+      elif method == 'ridge':
+        assert hyperparameter is not None, "hyperparameter cannot be None"
+        prediction = self.ridge(degree, hyperparameter, initialized_features=False, 
+          features_train=features_train, features_test=features_test, z_train=z_train)
+      elif method == 'lasso':
+        assert hyperparameter is not None, "hyperparameter cannot be None"
+        prediction = self.lasso(degree, hyperparameter, initialized_features=False, 
+          features_train=features_train, features_test=features_test, z_train=z_train)
+      else:
+        print("Choose method 'ols', 'ridge' or 'lasso'")
+      mses[g] = mean_squared_error(z_test, prediction)
+      r2s[g] = r2_score(z_test, prediction)
+
+    mse_cv = np.mean(mses)    
+    r2_cv = np.mean(r2s)
+    return mse_cv, r2_cv
+
 
 def test_polynomial_features_xy():
   # simplest case test
