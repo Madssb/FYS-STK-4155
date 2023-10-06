@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This model contains the regression functions pertaining to project 1.
 """
@@ -12,13 +13,16 @@ from typing import Tuple
 
 class LinearRegression2D:
   """
-  TBA
+  Toolbox for creating predictions with OLS, Ridge and Lasso regression,
+  and evaluating and visualizing their MSE and R2
   """
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
                center=True):
     """
+    Instantiate LinearRegression2D object.
+
     Parameters
     ----------
     x: one-dimensional array of floats
@@ -33,6 +37,8 @@ class LinearRegression2D:
       hyperparameter span for linear regression models.
     center: Bool
       True if centering features.
+
+    
     """
     assert len(x.shape) == 1, "requires m dimensional array."
     assert len(y.shape) == 1, "requires n dimensional array."
@@ -308,6 +314,20 @@ class LinearRegression2D:
     return self.mses_lasso, self.r2s_lasso
 
   def visualize_mse_ols(self, show=False, save=True):
+    """
+    Visualize MSE as function of polynomial degree for prediction by OLS
+    regression.
+
+
+    Parameters
+    ----------
+    show: Bool
+      Shows figure if true.
+    save: Bool
+      saves figure if true.
+
+
+    """
     if not hasattr(self, 'mses_ols'):
       self.mse_and_r2_ols()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -321,6 +341,20 @@ class LinearRegression2D:
       fig.savefig("../plots/ols_mse.pdf")
 
   def visualize_mse_ridge(self, show=False, save=True):
+    """
+    Visualize MSE as a function of polynomial degree and hyperparameter for
+    prediction by Ridge regression.
+
+    
+    Parameters
+    ----------
+    show: Bool
+      Shows figure if true.
+    save: Bool
+      saves figure if true.
+
+      
+    """
     if not hasattr(self, 'mses_ridge'):
       self.mse_and_r2_ridge()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -343,6 +377,20 @@ class LinearRegression2D:
       fig.savefig("../plots/ridge_mse.pdf")
 
   def visualize_mse_lasso(self, show=False, save=True):
+    """
+    Visualize MSE as a function of polynomial degree and hyperparameter for
+    prediction by Lasso regression.
+
+    
+    Parameters
+    ----------
+    show: Bool
+      Shows figure if true.
+    save: Bool
+      saves figure if true.
+
+      
+    """
     if not hasattr(self, 'mses_lasso'):
       self.mse_and_r2_lasso()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -406,6 +454,12 @@ class LinearRegression2D:
 
 
 def test_polynomial_features_xy():
+  """
+  Verifies that output of polynomial_features_xy is as expected, with
+  comparison of expected and computed output given simple parameters.
+
+
+  """
   # simplest case test
   x = np.array([1], dtype=float)
   y = np.array([2], dtype=float)
