@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 from utilities import (my_figsize, mean_squared_error, r2_score)
 from typing import Tuple
+from sklearn.utils import resample
 
 
 class LinearRegression2D:
@@ -19,7 +20,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               center=True):
+               center=True, normalize=False):
     """
     Instantiate LinearRegression2D object.
 
@@ -55,6 +56,7 @@ class LinearRegression2D:
     self.degrees = degrees
     self.hyperparameters = hyperparameters
     self.center = center
+    self.normalize = normalize
     self.initialize_features_n_train_test_split_data()
 
   def features_polynomial_xy(self, degree: int) -> np.ndarray:
@@ -93,6 +95,9 @@ class LinearRegression2D:
             col_count += 1
     if self.center:
       features_xy -= np.mean(features_xy, axis=1, keepdims=True)
+    #if self.normalize:
+    #  print(np.shape(np.std(features_xy, axis=1, keepdims=True)))
+    #  features_xy = features_xy / np.std(features_xy, axis=1, keepdims=True)
     return features_xy
 
   def initialize_features_n_train_test_split_data(self, test_size=0.2):
@@ -411,10 +416,39 @@ class LinearRegression2D:
       plt.show()
     if save == True:
       fig.savefig("../plots/lasso_mse.pdf")
+  
+  def bootstrap(self, nbootstraps: int, degree: int, method='ols', hyperparameter=None):
+    features_train = self.features_train[str(degree)]
+    features_test = self.features_test[str(degree)]
+    z_train = self.z_train[str(degree)]
+    z_test = np.expand_dims(self.z_test[str(degree)], axis=1)
+    predictions = np.empty((len(z_test), nbootstraps))
 
-  def cross_validation(self, degree: int, k: int, method='ols', hyperparameter=None):
+    for i in range(nbootstraps):
+      features_, z_ = resample(features_train, z_train)
+      if method == 'ols':
+        predictions[:,i] = self.ols(degree, initialized_features=False, 
+          features_train=features_, features_test=features_test, z_train=z_)
+      elif method == 'ridge':
+        assert hyperparameter is not None, "hyperparameter cannot be None"
+        predictions[:,i] = self.ridge(degree, hyperparameter, initialized_features=False, 
+          features_train=features_, features_test=features_test, z_train=z_)
+      elif method == 'lasso':
+        assert hyperparameter is not None, "hyperparameter cannot be None"
+        predictions[:,i] = self.lasso(degree, hyperparameter, initialized_features=False, 
+          features_train=features_, features_test=features_test, z_train=z_)
+      else:
+        print("Choose method 'ols', 'ridge' or 'lasso'")
+    
+    mse = np.mean( np.mean((z_test - predictions)**2, axis=1, keepdims=True))
+    bias = np.mean( (z_test - np.mean(predictions, axis=1, keepdims=True))**2 )
+    variance = np.mean( np.var(predictions, axis=1, keepdims=True) )
+    
+    return mse, bias, variance
+
+  def cross_validation(self, k: int, degree: int, method='ols', hyperparameter=None):
     features = self.features_polynomial_xy(degree)
-    n = len(self.z_flat)
+    n = len(self.z_flat) # Get number of datapoints
     mses = np.empty(k)
     r2s = np.empty(k)
 
@@ -451,6 +485,8 @@ class LinearRegression2D:
     mse_cv = np.mean(mses)    
     r2_cv = np.mean(r2s)
     return mse_cv, r2_cv
+
+
 
 
 def test_polynomial_features_xy():
