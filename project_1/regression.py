@@ -94,10 +94,9 @@ class LinearRegression2D:
             features_xy[row, col_count] = x_**k*y_**l
             col_count += 1
     if self.center:
-      features_xy -= np.mean(features_xy, axis=1, keepdims=True)
-    #if self.normalize:
-    #  print(np.shape(np.std(features_xy, axis=1, keepdims=True)))
-    #  features_xy = features_xy / np.std(features_xy, axis=1, keepdims=True)
+      features_xy -= np.mean(features_xy, axis=0, keepdims=True)
+    if self.normalize:
+      features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 
   def initialize_features_n_train_test_split_data(self, test_size=0.2):
@@ -457,6 +456,7 @@ class LinearRegression2D:
     # split indices into k groups
     idx_groups = np.array_split(idx, k)
 
+
     for g in range(k):
       test_idx = idx_groups[g]
       train_idx = np.concatenate([idx_groups[h] for h in range(k) if h != g])
@@ -485,8 +485,6 @@ class LinearRegression2D:
     mse_cv = np.mean(mses)    
     r2_cv = np.mean(r2s)
     return mse_cv, r2_cv
-
-
 
 
 def test_polynomial_features_xy():
