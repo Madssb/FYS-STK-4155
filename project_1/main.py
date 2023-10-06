@@ -42,7 +42,7 @@ def main():
   # Task c
   #linreg_instance.visualize_mse_lasso(show=True, save=False)
   # Task e
-  """
+ 
   mses = np.empty(len(degrees))
   biases = np.empty(len(degrees))
   variances = np.empty(len(degrees))
@@ -75,16 +75,16 @@ def main():
   plt.plot(degrees, variances, '--', label='bootstrap variance')
   plt.legend()
   plt.show()
-"""
+
   
 
   # Task g
   from imageio import imread
   terrain1 = imread('../astridbg/SRTM_data_Norway_1.tif')
-  x_pos, y_pos = 0, 0
-  reduce_factor = 20
-  y_shift = 500
-  x_shift = 500
+  x_pos, y_pos = 500, 500
+  reduce_factor = 10
+  y_shift = 600
+  x_shift = 600
   z = terrain1[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
   z = z[::reduce_factor, ::reduce_factor]
 
@@ -119,17 +119,26 @@ def main():
   y = np.arange(np.shape(z)[1])
   z = z - np.mean(z)
   z = z / np.std(z)
-  degrees = np.linspace(1,9,9,dtype=int)
-  hyperparameters = np.logspace(-4,4,10)
+  degrees = np.linspace(1,15,15,dtype=int)
+  hyperparameters = np.logspace(-4,0,10)
   linreg_instance = LinearRegression2D(x, y, z,
                                        degrees, hyperparameters, 
                                        center=True, normalize=True)
   linreg_instance.visualize_mse_ols(show=True, save=False)
-  mse, r2 = linreg_instance.cross_validation(k=5, 
-        degree=5, method='ols')
-  print("Cross-val", mse)
-  linreg_instance.visualize_mse_ridge(show=True, save=False)
-  linreg_instance.visualize_mse_lasso(show=True, save=False)
+  k = np.linspace(5, 10, 6, dtype=int)
+  mses_cv = np.empty((len(k), len(degrees)))
+  plt.figure()
+  for i in range(len(k)):
+    for j in range(len(degrees)):
+      mse, r2 = linreg_instance.cross_validation(k=k[i], 
+        degree=degrees[j], method='ols', hyperparameter=10**(-4))
+      mses_cv[i,j] = mse
+    plt.plot(degrees, mses_cv[i,:],label=k[i])
+  plt.legend()
+  plt.show()
+
+  #linreg_instance.visualize_mse_ridge(show=True, save=False)
+  #linreg_instance.visualize_mse_lasso(show=True, save=False)
                                       
 
 if __name__ == '__main__':
