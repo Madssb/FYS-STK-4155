@@ -412,6 +412,26 @@ class LinearRegression2D:
     if save == True:
       fig.savefig("../plots/lasso_mse.pdf")
 
+def plot_terrain(self):
+		""" Plot entire terrain dataset """
+		fig, ax = plt.subplots()
+		plt.title('Terrain')
+		ax.imshow(self.x, self.y, self.z, cmap='viridis')
+		plt.xlabel('X')
+		plt.ylabel('Y')
+		plt.show()
+
+def plot_terrain_3D(self):
+		""" Plot 3D terrain of zoomed in area """
+		fig = plt.figure()
+		ax = plt.axes(projection = '3d')
+		plt.title('Terrain 3D')
+		z_plot = np.array_split(self.z, len(self.x))
+		z_plot = np.array(z_plot)
+		surf = ax.plot_surface(self.x, self.y, z_plot, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False)
+		fig.colorbar(surf, shrink=0.5, aspect=5)
+		plt.show()
+
 
 def test_polynomial_features_xy():
   """
