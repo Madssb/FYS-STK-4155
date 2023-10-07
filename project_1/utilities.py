@@ -14,21 +14,23 @@ import numpy as np
 
 def franke_function(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   """
-  Evaluates the franke function for coordinates x and y.
+  Evaluate Franke's function for given x, y mesh.
 
 
   Parameters
   ----------
-  x: Two-dimensional array of floats
+  x: n-dimensional array of floats
     Meshgrid for x.
-  y: Two-dimensional array of floats
+  y: n-dimensional array of floats
     Meshgrid for y.
 
 
   Returns
   -------
-  Two-dimensional array of floats
-    FrankeFunction evaluated on x, y mesh.
+  array like:
+    Franke's function mesh.
+
+
   """
   term1 = 0.75*np.exp(-(0.25*(9*x-2)**2) - 0.25*((9*y-2)**2))
   term2 = 0.75*np.exp(-((9*x+1)**2)/49.0 - 0.1*(9*y+1))
@@ -37,51 +39,99 @@ def franke_function(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   return term1 + term2 + term3 + term4
 
 
-def mean_squared_error(y: np.ndarray, model: np.ndarray) -> float:
+def mean_squared_error(observed: np.ndarray, estimate: np.ndarray) -> float:
   """
-  Compute mean squared error for some model w.r.t  its analytical expression.
+  Compute mean squared error for estimate w.r.t observed data.
 
 
   Parameters
   ----------
-  y: x-dimensional array of floats
-    Analytical expression
-  model: x-dimensional array of floats
-    Model
+  observed: x-dimensional array of floats
+    Observed values
+  estimate: x-dimensional array of floats
+    Estimate for observed values
       
 
   Returns
   -------
-      Mean squared error for model.
-  """
-  err_msg = f"{y.shape=} and {model.shape=}, expected same shapes."
-  assert y.shape == model.shape, err_msg
-  return np.mean((y - model)**2)
+  float:
+    Mean squared error of estimate.
 
 
-def r2_score(y: np.ndarray, model: np.ndarray) -> float:
   """
-  Compute R2-score for some model w.r.t its analytical expression.
+  err_msg = f"{observed.shape=} and {estimate.shape=}, expected same shapes."
+  assert observed.shape == estimate.shape, err_msg
+  return np.mean((observed - estimate)**2)
+
+
+def r2_score(observed: np.ndarray, estimate: np.ndarray) -> float:
+  """
+  Compute R2-score for some estimate w.r.t observed data.
 
 
   Parameters
   ----------
-  y: x-dimensional array of floats
-    Analytical expression.
-  model: x-dimensional array of floats
-    Model.
+  observed: x-dimensional array of floats
+    Observed values
+  estimate: x-dimensional array of floats
+    Estimate for observed values
+    
       
-
   Returns
   -------
-    R2-score for the model.
-  """
-  err_msg = f"{y.shape=} and {model.shape=}, expected same shapes."
-  assert y.shape == model.shape, err_msg
-  mse = mean_squared_error(y, model)
-  mean_y = np.mean(y)*np.ones_like(y)
-  return 1 - mse**2/mean_squared_error(y, mean_y)
+  float:
+    R2-score of estimate.
 
+
+  """
+  err_msg = f"{observed.shape=} and {estimate.shape=}, expected same shapes."
+  assert observed.shape == estimate.shape, err_msg
+  mse = mean_squared_error(observed, estimate)
+  mean_observed = np.mean(observed)*np.ones_like(observed)
+  return 1 - mse**2/mean_squared_error(observed, mean_observed)
+
+
+def bias(observed: np.ndarray, estimate: np.ndarray) -> float:
+  """
+  Compute bias for some estimate w.r.t observed data.
+
+  
+  Parameters
+  ----------
+  observed: x-dimensional array of floats
+    Observed values
+  estimate: x-dimensional array of floats
+    Estimate for observed values
+  
+    
+  Returns
+  -------
+  float:
+    Bias of estimate.
+
+
+  """
+  estimate_mean = np.mean(estimate)*np.ones(estimate)
+  return np.mean((observed - estimate_mean)**2)
+
+
+def variance(estimate: np.ndarray) -> float:
+  """
+  Compute variance for estimate:
+
+
+  Parameters
+  ----------
+  estimate: x-dimensional array of floats
+    Trained parameters applied on observed input.
+
+  
+  Returns
+  -------
+  float:
+    variance of estimate
+  """
+  return bias(estimate, estimate)
 
 def test_mean_squared_error_5_dim():
   """

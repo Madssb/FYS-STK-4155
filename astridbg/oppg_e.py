@@ -48,7 +48,7 @@ for degree in range(maxdegree):
     polydegree[degree] = degree
     error[degree] = np.mean( np.mean((z_test - z_pred)**2, axis=1, keepdims=True) )
     bias[degree] = np.mean( (z_test - np.mean(z_pred, axis=1, keepdims=True))**2 )
-    variance[degree] = np.mean( np.var(z_pred, axis=1, keepdims=True) )
+    variance[degree] = np.mean( np.var(z_pred, axis=1, keepdims=True) ) 
 
 
 plt.plot(polydegree, error, label='Total mean squared error')
