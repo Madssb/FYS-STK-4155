@@ -1,0 +1,12 @@
+cff-version: 1
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Saua Balto
+    given-names: Mads
+  - family-names: Hafstad
+    given-names: Oskar
+  - family-names: Bragstad Gjelsvik
+    given-names: Astrid
+title: "FYS-STK4155 Projects"
+version: 1
+date-released: 2023-10-08
