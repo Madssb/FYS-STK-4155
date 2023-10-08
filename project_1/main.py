@@ -2,7 +2,7 @@
 Solve project here
 """
 import numpy as np
-from utilities import (franke_function, mean_squared_error, r2_score, my_figsize)
+from utilities import (franke_function, my_figsize)
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
@@ -29,18 +29,12 @@ def main():
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = analytic + noise
   degrees = np.linspace(1,5,5,dtype=int)
-  hyperparameters = np.logspace(-4,4,10)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
   linreg_instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
-  # Task a
-  linreg_instance.visualize_mse_ols(show=True, save=False)
-  # Task b
-  linreg_instance.visualize_mse_ridge(show=True, save=False)
-  # Task c
-  linreg_instance.visualize_mse_lasso(show=True, save=False)
+  linreg_instance.visualize_quantities_ols()
+
 
 
 if __name__ == '__main__':
-  #ols_franke_function()temporary_name
-  #ridge_franke_function()
   main() 

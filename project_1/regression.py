@@ -7,7 +7,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-from utilities import (my_figsize, mean_squared_error, r2_score)
+from utilities import (my_figsize)
+from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
+                                      variance)
 from typing import Tuple
 
 
@@ -25,15 +27,15 @@ class LinearRegression2D:
 
     Parameters
     ----------
-    x: one-dimensional array of floats
+    x : array like, shape (n), dtype float
       X-dimension mesh
-    y: one-dimensional array of floats
+    y : array like, shape (m), dtype float
       Y-dimension mesh.
-    z: two-dimensional array of floats
+    z : array like, shape (n, m), dtype float
       Mesh function z(x,y)
-    degrees: one-dimensional array of integers
+    degrees : one-dimensional array of integers
       complexities span for linear regression models.
-    hyperparameters: one-dimensional array of floats
+    hyperparameters : one-dimensional array of floats
       hyperparameter span for linear regression models.
     center: Bool
       True if centering features.
@@ -67,13 +69,13 @@ class LinearRegression2D:
 
     Parameters
     ----------
-    degree: int
+    degree : int
       Polynomial degree for model.
 
 
     Returns
     -------
-    two-dimensional-array
+    np.ndarray, shape (m*n, (degree+1)*(degree+2)/2), dtype float
       Design matrix for two dimensional polynomial of specified degree. 
 
     
@@ -153,8 +155,8 @@ class LinearRegression2D:
     optimal_parameters = np.linalg.pinv(
         np.transpose(features_train) @ features_train
     ) @ np.transpose(features_train) @ z_train
-    predicted_model = features_test @ optimal_parameters
-    return predicted_model
+    predicted = features_test @ optimal_parameters
+    return predicted
 
   def ridge(self, degree: int, hyperparameter: float, 
             initialized_features=True, features_train: np.ndarray = None, 
@@ -206,8 +208,8 @@ class LinearRegression2D:
         np.transpose(features_train) @ features_train
         + np.identity(features_train.shape[1])*hyperparameter
     ) @ np.transpose(features_train) @ z_train
-    predicted_model = features_test @ optimal_parameters
-    return predicted_model
+    predicted = features_test @ optimal_parameters
+    return predicted
 
   def lasso(self, degree: int, hyperparameter: float,
             initialized_features=True, features_train: np.ndarray = None,
@@ -257,63 +259,123 @@ class LinearRegression2D:
       assert features_train is not None, "features_train cannot be None"
     model = Lasso(alpha=hyperparameter)
     model.fit(features_train, z_train)
-    predicted_model = model.predict(features_test)
-    return predicted_model
+    predicted = model.predict(features_test)
+    return predicted
 
-  def mse_and_r2_ols(self):
+  def evaluate_predicted_ols(self, model_eval_func: callable) -> dict:
     """
-    Compute mean squared error for ordinary least square regression computed
-    models as a function of model complexity.
+    Compute any of the following model evaluations:
+    - MSE
+    - R2
+    - Bias
+    - Variance
+    for OLS predictions as a function of degree.
+
+    Parameters
+    ----------
+    model_eval_func : {mean_squared_error, r2_score, bias, variance}
+      Model evaluation function.
+
+    
+    Returns
+    -------
+    np.ndarray
+      Model evaluation for OLS predictions as a function of degree.
+
+
     """
-    err_msg = "specying degrees is required for using mse_and_r2_ols"
+
+    model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
+    err_msg = "model_eval_func not a permitted Model evaluation callable"
+    assert model_eval_func in model_eval_funcs, err_msg
+    err_msg = "specying degrees is required for using evaluate_predicted_ols"
     assert self.degrees is not None, err_msg
-    self.mses_ols = np.empty_like(self.degrees, dtype=float)
-    self.r2s_ols = np.empty_like(self.degrees, dtype=float)
+    evaluated_model = np.empty_like(self.degrees, dtype=float)
     for i, degree in enumerate(self.degrees):
       unseen = self.z_test[str(degree)]
-      prediction = self.ols(degree)
-      self.mses_ols[i] = mean_squared_error(unseen, prediction)
-      self.r2s_ols[i] = r2_score(unseen, prediction)
+      predicted = self.ols(degree)
+      try:
+        evaluated_model[i] = model_eval_func(unseen, predicted)
+      except TypeError:
+        evaluated_model[i] = model_eval_func(predicted)
+    return evaluated_model
 
-  def mse_and_r2_ridge(self):
+
+  def evaluate_predicted_ridge(self, model_eval_func: callable):
     """
-    Compute mean squared error for Ridge regression computed models as a
-    function of model complexity.
+    Compute any of the following model evaluations:
+    - MSE
+    - R2
+    - Bias
+    - Variance
+    for Ridge predictions as a function of degree.
+
+    Parameters
+    ----------
+    model_eval_func : {mean_squared_error, r2_score, bias, variance}
+      Model evaluation function.
+
+    
+    Returns
+    -------
+    np.ndarray
+      Model evaluation for Ridge predictions as a function of degree.
+
+      
     """
+    model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
+    err_msg = "model_eval_func not a permitted Model evaluation callable"
+    assert model_eval_func in model_eval_funcs, err_msg
     err_msg = """specifying degrees and hyperparameters is required for using 
     mse_and_r2_ridge"""
     assert self.degrees is not None, err_msg
-    self.mses_ridge = np.empty(
+    evaluated_model = np.empty(
         (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
-    self.r2s_ridge = np.empty_like(self.mses_ridge, dtype=float)
     for i, degree in enumerate(self.degrees):
       unseen = self.z_test[str(degree)]
       for j, hyperparameter in enumerate(self.hyperparameters):
-        prediction = self.ridge(degree, hyperparameter)            
-        self.mses_ridge[i, j] = mean_squared_error(unseen, prediction)
-        self.r2s_ridge[i, j] = r2_score(unseen, prediction)
-    return self.mses_ridge, self.r2s_ridge
+        predicted = self.ridge(degree, hyperparameter)
+        evaluated_model[i, j] = model_eval_func(unseen, predicted)        
+    return evaluated_model
 
-  def mse_and_r2_lasso(self):
+  def evaluate_predicted_lasso(self, model_eval_func: callable):
     """
-    Compute mean squared error for Lasso regression computed models as a
-    function of model complexity.
+    Compute any of the following model evaluations:
+    - MSE
+    - R2
+    - Bias
+    - Variance
+    for Lasso predictions as a function of degree.
+
+    Parameters
+    ----------
+    model_eval_func : {mean_squared_error, r2_score, bias, variance}
+      Model evaluation function.
+
+    
+    Returns
+    -------
+    np.ndarray
+      Model evaluation for Lasso predictions as a function of degree.
+
+      
     """
+    model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
+    err_msg = "model_eval_func not a permitted Model evaluation callable"
+    assert model_eval_func in model_eval_funcs, err_msg
     err_msg = """specifying degrees and hyperparameters is required for using 
     mse_and_r2_lasso"""
     assert self.degrees is not None, err_msg
-    self.mses_lasso = np.empty(
+    evaluated_model = np.empty(
         (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
-    self.r2s_lasso = np.empty_like(self.mses_lasso, dtype=float)
     for i, degree in enumerate(self.degrees):
       unseen = self.z_test[str(degree)]
       for j, hyperparameter in enumerate(self.hyperparameters):
-        prediction = self.lasso(degree, hyperparameter)
-        self.mses_lasso[i, j] = mean_squared_error(unseen, prediction)
-        self.r2s_lasso[i, j] = r2_score(unseen, prediction)
-    return self.mses_lasso, self.r2s_lasso
+        predicted = self.lasso(degree, hyperparameter)
+        evaluated_model[i, j] = model_eval_func(unseen, predicted) 
+    return evaluated_model
 
-  def visualize_mse_ols(self, show=False, save=True):
+  def visualize_quantities_ols(self, show=False, save=True):
     """
     Visualize MSE as function of polynomial degree for prediction by OLS
     regression.
@@ -328,17 +390,21 @@ class LinearRegression2D:
 
 
     """
-    if not hasattr(self, 'mses_ols'):
-      self.mse_and_r2_ols()
+    model_eval_str = ["mse", "r2", "bias", "variance"]
+    model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
     fig, ax = plt.subplots(figsize=my_figsize())
-    ax.plot(self.degrees, self.mses_ols, label="MSE")
+    for i, model_eval_func in enumerate(model_eval_funcs):
+      model_eval = self.evaluate_predicted_ols(model_eval_func)
+      ax.plot(self.degrees, model_eval, label=model_eval_str[i])
+
     ax.set_xlabel("Polynomial degree")
-    ax.set_ylabel("MSE")
+    ax.set_ylabel("")
+    ax.legend()
     fig.tight_layout()
     if show == True:
       plt.show()
     if save == True:
-      fig.savefig("../plots/ols_mse.pdf")
+      fig.savefig("figs/ols_everything.pdf")
 
   def visualize_mse_ridge(self, show=False, save=True):
     """
@@ -355,6 +421,7 @@ class LinearRegression2D:
 
       
     """
+
     if not hasattr(self, 'mses_ridge'):
       self.mse_and_r2_ridge()
     fig, ax = plt.subplots(figsize=my_figsize())
@@ -374,7 +441,8 @@ class LinearRegression2D:
     if show == True:
       plt.show()
     if save == True:
-      fig.savefig("../plots/ridge_mse.pdf")
+      fig.savefig("figs/ridge_mse.pdf")
+    
 
   def visualize_mse_lasso(self, show=False, save=True):
     """
