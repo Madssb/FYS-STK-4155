@@ -2,8 +2,10 @@
 Solve project here
 """
 import numpy as np
-from utilities import (franke_function, mean_squared_error, r2_score, my_figsize)
+from utilities import (franke_function, my_figsize)
 from sklearn.model_selection import train_test_split
+from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
+                                      variance)
 import pandas as pd
 
 from matplotlib.ticker import FuncFormatter
@@ -29,18 +31,39 @@ def main():
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = analytic + noise
   degrees = np.linspace(1,5,5,dtype=int)
-  hyperparameters = np.logspace(-4,4,10)
-  linreg_instance = LinearRegression2D(x, y, mock_data,
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
-  # Task a
-  linreg_instance.visualize_mse_ols(show=True, save=False)
-  # Task b
-  linreg_instance.visualize_mse_ridge(show=True, save=False)
-  # Task c
-  linreg_instance.visualize_mse_lasso(show=True, save=False)
+  mses_ols = instance.evaluate_model_mesh(instance.ols,
+                                                 mean_squared_error,
+                                                 instance.evaluate_predicted)
+  mses_ridge = instance.evaluate_model_mesh(instance.ridge,
+                                                 mean_squared_error,
+                                                 instance.evaluate_predicted)
+  
+  model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
+  eval_funcs_str = ["mse", "r2", "bias", "variance"]
+  regression_methods = [instance.ols, instance.ridge, instance.lasso]
+  regression_methods_str = ["ols", "ridge", "lasso"]
 
+  eval_prediction_methods = [instance.evaluate_predicted,
+                             instance.evaluate_predicted_bootstrap]
+  bootstrap_str = ["", "bootstrap"]
+  n_pts = str(mock_data.ravel().shape[0])
+  for i, model_eval_func  in enumerate(model_eval_funcs):
+    for j, regression_method in enumerate(regression_methods):
+      for k, eval_prediction_method in enumerate(eval_prediction_methods):
+        evaled_model_mesh = instance.evaluate_model_mesh(regression_method,
+                                                         model_eval_func,
+                                                         eval_prediction_method)
+        if regression_method == instance.ols:
+          fig, ax = instance.visualize_ols(evaled_model_mesh, eval_funcs_str[i])
+          filename = f"figs/{eval_funcs_str[i]}_{regression_methods_str[j]}_{bootstrap_str[k]}_{n_pts}.pdf"
+          fig.savefig(filename)
+        else:
+          fig, ax = instance.visualize_mse_ridge(evaled_model_mesh, eval_funcs_str[i])
+          filename = f"figs/{eval_funcs_str[i]}_{regression_methods_str[j]}_{bootstrap_str[k]}_{n_pts}.pdf"
+          fig.savefig(filename)
 
 if __name__ == '__main__':
-  #ols_franke_function()temporary_name
-  #ridge_franke_function()
   main() 
