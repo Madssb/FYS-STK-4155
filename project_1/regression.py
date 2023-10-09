@@ -21,7 +21,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               test_size = 0.2, n_subsets = 5, center=True):
+               test_size = 0.2, n_subsets = 5, center=True, normalize=True):
     """
     Instantiate LinearRegression2D object.
 
@@ -31,8 +31,8 @@ class LinearRegression2D:
       X-dimension mesh
     y : array like, shape (m), dtype float
       Y-dimension mesh.
-    z : array like, shape (n, m), dtype float
-      Mesh function z(x,y)
+    z : array like, shape (n *m), dtype float
+      Mesh function z(x,y), but flattened.
     degrees : one-dimensional array of integers
       complexities span for linear regression models.
     hyperparameters : one-dimensional array of floats
@@ -50,15 +50,20 @@ class LinearRegression2D:
     if z is not None:
       err_msg = f"{z.shape=}, requires mxn dimensional array."
       assert z.shape == (x.shape[0], y.shape[0]), err_msg
-      self.z_flat = z.ravel()
     self.x = x
     self.y = y
     self.z = z
+    if center:
+      self.z -= np.mean(self.z)
+    if normalize:
+      self.z /= np.std(z)
     self.degrees = degrees
     self.hyperparameters = hyperparameters
     self.test_size = test_size
     self.n_subsets = n_subsets
     self.center = center
+    self.normalize = normalize
+  
 
   def features_polynomial_xy(self, degree: int) -> np.ndarray:
     """
@@ -95,7 +100,9 @@ class LinearRegression2D:
             features_xy[row, col_count] = x_**k*y_**l
             col_count += 1
     if self.center:
-      features_xy -= np.mean(features_xy, axis=1, keepdims=True)
+      features_xy -= np.mean(features_xy, axis=0, keepdims=True)
+    if self.normalize:
+      features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 
   def ols(self, features_train: np.ndarray, features_test: np.ndarray,
@@ -233,7 +240,7 @@ class LinearRegression2D:
     err_msg = "model_eval_func not a permitted Model evaluation callable"
     assert model_eval_func in model_eval_funcs, err_msg
     features = self.features_polynomial_xy(degree)
-    response = self.z_flat
+    response = self.z
     features_train, features_test, seen, unseen = \
       train_test_split(features, response, test_size=self.test_size)
     try:
@@ -247,7 +254,7 @@ class LinearRegression2D:
       model_eval = model_eval_func(predicted)
     return model_eval
 
-  def evaluate_predicted_bootstrap(self, degree: int, 
+  def evaluate_predicted_crossval(self, degree: int, 
                                    hyperparameter: float,
                                    regression_method: callable,
                                    model_eval_func: callable) -> float:
@@ -281,7 +288,7 @@ class LinearRegression2D:
     err_msg = "regression_method not method in LinearRegression2D."
     assert regression_method in regression_methods, err_msg
     features = self.features_polynomial_xy(degree)
-    response = self.z_flat
+    response = self.z
     shuffled_indices = np.random.permutation(np.arange(response.shape[0]))
     indice_subsets = np.array_split(shuffled_indices, self.n_subsets)
     cumulative_model_eval = 0
@@ -295,10 +302,10 @@ class LinearRegression2D:
         predicted = regression_method(features_train, features_test, seen, hyperparameter)
       except TypeError:
         predicted = regression_method(features_train, features_test, seen)
-        try:
-          cumulative_model_eval += model_eval_func(unseen, predicted)
-        except TypeError:
-          cumulative_model_eval += model_eval_func(predicted)
+      try:
+        cumulative_model_eval += model_eval_func(unseen, predicted)
+      except TypeError:
+        cumulative_model_eval += model_eval_func(predicted)
       avg_model_eval = cumulative_model_eval/self.n_subsets
       return avg_model_eval
 
@@ -316,7 +323,7 @@ class LinearRegression2D:
       Method used to compute prediction.
     model_eval_func : {mean_squared_error, r2_score, bias, variance}
       Function applied for evaluate predction w.r.t unseen data.
-    eval_predicted_method : {self.evalute_predicted, self.evaluate_predicted_bootstrap}
+    eval_predicted_method : {self.evalute_predicted, self.evaluate_predicted_crossval}
       method for computing model evaluation, i.e. apply bootstrap or not.
     
     
@@ -327,7 +334,7 @@ class LinearRegression2D:
 
     """
     eval_predicted_methods = [self.evaluate_predicted,
-                              self.evaluate_predicted_bootstrap]
+                              self.evaluate_predicted_crossval]
     err_msg = "eval_predicted_method not method in Linearregression2D"
     assert eval_predicted_method in eval_predicted_methods, err_msg
     if regression_method == self.ols:
