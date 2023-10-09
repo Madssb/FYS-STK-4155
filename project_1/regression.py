@@ -20,7 +20,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               center=True, normalize=False):
+               center=True, standardize=False):
     """
     Instantiate LinearRegression2D object.
 
@@ -95,7 +95,7 @@ class LinearRegression2D:
             col_count += 1
     if self.center:
       features_xy -= np.mean(features_xy, axis=0, keepdims=True)
-    if self.normalize:
+    if self.standardize:
       features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 

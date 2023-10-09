@@ -123,7 +123,7 @@ def main():
   hyperparameters = np.logspace(-4,0,10)
   linreg_instance = LinearRegression2D(x, y, z,
                                        degrees, hyperparameters, 
-                                       center=True, normalize=True)
+                                       center=True, standardize=True)
   linreg_instance.visualize_mse_ols(show=True, save=False)
   k = np.linspace(5, 10, 6, dtype=int)
   mses_cv = np.empty((len(k), len(degrees)))
