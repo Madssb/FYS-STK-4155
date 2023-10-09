@@ -42,7 +42,7 @@ def main():
   # Task c
   #linreg_instance.visualize_mse_lasso(show=True, save=False)
   # Task e
- 
+  """
   mses = np.empty(len(degrees))
   biases = np.empty(len(degrees))
   variances = np.empty(len(degrees))
@@ -75,16 +75,16 @@ def main():
   plt.plot(degrees, variances, '--', label='bootstrap variance')
   plt.legend()
   plt.show()
-
+  """
   
 
   # Task g
   from imageio import imread
   terrain1 = imread('../astridbg/SRTM_data_Norway_1.tif')
   x_pos, y_pos = 500, 500
-  reduce_factor = 10
-  y_shift = 600
-  x_shift = 600
+  reduce_factor = 30
+  y_shift = 1000
+  x_shift = 1000
   z = terrain1[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
   z = z[::reduce_factor, ::reduce_factor]
 
@@ -92,7 +92,7 @@ def main():
   import matplotlib.pyplot as plt
   from matplotlib import cm
   from matplotlib.ticker import LinearLocator, FormatStrFormatter
-
+  """
   fig = plt.figure()
   ax = fig.add_subplot(projection='3d')
 
@@ -114,12 +114,12 @@ def main():
   fig.colorbar(surf, shrink=0.5, aspect=5)
 
   plt.show()
-
+  """
   x = np.arange(np.shape(z)[0])
   y = np.arange(np.shape(z)[1])
   z = z - np.mean(z)
   z = z / np.std(z)
-  degrees = np.linspace(1,15,15,dtype=int)
+  degrees = np.linspace(1,25,25,dtype=int)
   hyperparameters = np.logspace(-4,0,10)
   linreg_instance = LinearRegression2D(x, y, z,
                                        degrees, hyperparameters, 
@@ -137,8 +137,8 @@ def main():
   plt.legend()
   plt.show()
 
-  #linreg_instance.visualize_mse_ridge(show=True, save=False)
-  #linreg_instance.visualize_mse_lasso(show=True, save=False)
+  linreg_instance.visualize_mse_ridge(show=True, save=False)
+  linreg_instance.visualize_mse_lasso(show=True, save=False)
                                       
 
 if __name__ == '__main__':
