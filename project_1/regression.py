@@ -486,7 +486,7 @@ class LinearRegression2D:
     if show == True:
       plt.show()
     if save == True:
-      fig.savefig("../plots/ols_mse.pdf")
+      fig.savefig("../plots/ols_mse_test_train.pdf")
 
   def cross_validation(self, k: int, degree: int, method='ols', hyperparameter=None):
     features = self.features_polynomial_xy(degree)
