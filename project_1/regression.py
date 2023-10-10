@@ -56,7 +56,7 @@ class LinearRegression2D:
     self.degrees = degrees
     self.hyperparameters = hyperparameters
     self.center = center
-    self.normalize = normalize
+    self.standardize = standardize
     self.initialize_features_n_train_test_split_data()
 
   def features_polynomial_xy(self, degree: int) -> np.ndarray:
@@ -118,7 +118,7 @@ class LinearRegression2D:
 
   def ols(self, degree: int, initialized_features=True,
           features_train: np.ndarray = None, features_test: np.ndarray = None,
-          z_train: np.ndarray = None) -> np.ndarray:
+          z_train: np.ndarray = None, return_train=False) -> np.ndarray:
     """
     Implement Ordinary least squares regression for initialized or specified
     training set and test set.
@@ -158,7 +158,12 @@ class LinearRegression2D:
         np.transpose(features_train) @ features_train
     ) @ np.transpose(features_train) @ z_train
     predicted_model = features_test @ optimal_parameters
-    return predicted_model
+
+    if return_train:
+      ztilde = features_train @ optimal_parameters
+      return predicted_model, ztilde
+    else:
+      return predicted_model
 
   def ridge(self, degree: int, hyperparameter: float, 
             initialized_features=True, features_train: np.ndarray = None, 
@@ -264,7 +269,7 @@ class LinearRegression2D:
     predicted_model = model.predict(features_test)
     return predicted_model
 
-  def mse_and_r2_ols(self):
+  def mse_and_r2_ols(self, return_train=True):
     """
     Compute mean squared error for ordinary least square regression computed
     models as a function of model complexity.
@@ -273,9 +278,18 @@ class LinearRegression2D:
     assert self.degrees is not None, err_msg
     self.mses_ols = np.empty_like(self.degrees, dtype=float)
     self.r2s_ols = np.empty_like(self.degrees, dtype=float)
+    if return_train:
+      self.mses_ols_train = np.empty_like(self.degrees, dtype=float)
+      self.r2s_ols_train = np.empty_like(self.degrees, dtype=float)
     for i, degree in enumerate(self.degrees):
       unseen = self.z_test[str(degree)]
-      prediction = self.ols(degree)
+      if return_train:
+        seen = self.z_train[str(degree)]
+        prediction, ztilde = self.ols(degree, return_train=return_train)
+        self.mses_ols_train[i] = mean_squared_error(seen, ztilde)
+        self.r2s_ols_train[i] = r2_score(seen, ztilde)
+      else:
+        prediction = self.ols(degree)
       self.mses_ols[i] = mean_squared_error(unseen, prediction)
       self.r2s_ols[i] = r2_score(unseen, prediction)
 
@@ -444,6 +458,35 @@ class LinearRegression2D:
     variance = np.mean( np.var(predictions, axis=1, keepdims=True) )
     
     return mse, bias, variance
+
+  def visualize_mse_train_test_ols(self, show=False, save=True):
+    """
+    Visualize MSE as function of polynomial degree for prediction by OLS
+    regression for both training and test data.
+
+
+    Parameters
+    ----------
+    show: Bool
+      Shows figure if true.
+    save: Bool
+      saves figure if true.
+
+
+    """
+    if not hasattr(self, 'mses_ols_train'):
+      self.mse_and_r2_ols(return_train=True)
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.plot(self.degrees, self.mses_ols, label="MSE test")
+    ax.plot(self.degrees, self.mses_ols_train, label="MSE train")
+    ax.legend()
+    ax.set_xlabel("Polynomial degree")
+    ax.set_ylabel("MSE")
+    fig.tight_layout()
+    if show == True:
+      plt.show()
+    if save == True:
+      fig.savefig("../plots/ols_mse.pdf")
 
   def cross_validation(self, k: int, degree: int, method='ols', hyperparameter=None):
     features = self.features_polynomial_xy(degree)
