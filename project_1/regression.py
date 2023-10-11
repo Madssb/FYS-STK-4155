@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+  # -*- coding: utf-8 -*-
 """
 This model contains the regression functions pertaining to project 1.
 """
@@ -172,7 +172,8 @@ class LinearRegression2D:
         + np.identity(features_train.shape[1])*hyperparameter
     ) @ np.transpose(features_train) @ z_train
     predicted = features_test @ optimal_parameters
-    return predicted
+    trained = features_train @ optimal_parameters
+    return predicted, trained
 
   def lasso(self, features_train: np.ndarray,
             features_test: np.ndarray, z_train: np.ndarray,
@@ -209,6 +210,7 @@ class LinearRegression2D:
     model = Lasso(alpha=hyperparameter)
     model.fit(features_train, z_train)
     predicted = model.predict(features_test)
+    trained = model.predict(features_train)
     return predicted
   
   def evaluate_predicted(self, degree: int, hyperparameter: float,

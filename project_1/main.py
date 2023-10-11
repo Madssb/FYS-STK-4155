@@ -38,11 +38,11 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
                                                          model_eval_func,
                                                          eval_prediction_method)
         if regression_method == instance.ols:
-          fig, ax = instance.visualize_ols(evaled_model_mesh, eval_funcs_str[i])
+          fig, ax = instance.visualize_ols(evaled_model_mesh, eval_funcs_str[i].upper())
           filename = f"figs/{data_str}_{eval_funcs_str[i]}_{regression_methods_str[j]}_{crossval_str[k]}_{n_pts}.pdf"
           fig.savefig(filename)
         else:
-          fig, ax = instance.visualize_mse_ridge(evaled_model_mesh, eval_funcs_str[i])
+          fig, ax = instance.visualize_mse_ridge(evaled_model_mesh, eval_funcs_str[i].upper())
           filename = f"figs/{data_str}_{eval_funcs_str[i]}_{regression_methods_str[j]}_{crossval_str[k]}_{n_pts}.pdf"
           fig.savefig(filename)
 
@@ -96,5 +96,5 @@ def terrain():
 
 
 if __name__ == '__main__':
-  #franke()
+  franke()
   terrain()
