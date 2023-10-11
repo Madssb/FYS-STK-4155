@@ -48,8 +48,11 @@ class LinearRegression2D:
       err_msg = f"{degrees.dtype=}, must be integer."
       assert np.issubdtype(degrees.dtype, np.integer), err_msg
     if z is not None:
-      err_msg = f"{z.shape=}, requires mxn dimensional array."
-      assert z.shape == (x.shape[0], y.shape[0]), err_msg
+      assert len(z.shape) == 1, "z must be flattened"
+      assert len(x.shape) == 1, "x must be flat"
+      assert len(y.shape) == 1, "y must be flat"
+      err_msg = f"{z.shape[0]=} is not { x.shape[0] * y.shape[0]=}"
+      assert z.shape[0] == x.shape[0] * y.shape[0], err_msg
     self.x = x
     self.y = y
     self.z = z
