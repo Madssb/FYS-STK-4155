@@ -85,19 +85,28 @@ def simple_degree_analysis():
   ax.set_ylabel('Y')
   ax.set_zlabel('Z')
   fig.savefig("figs/franke_function_wo_noise.pdf")
+  features = instance.features_polynomial_xy(5)
+  predicted = instance.ols(features, features, mock_data,
+                            return_parameters=True)
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.plot_surface(x_mesh, y_mesh,predicted, cmap='viridis')
+  ax.set_xlabel('X')
+  ax.set_ylabel('Y')
+  ax.set_zlabel('Z')
+  fig.savefig("figs/franke_function_deg_5_predicted.pdf")
+  fig, ax = plt.subplots(figsize=my_figsize())
   for degree in degrees:
     features = instance.features_polynomial_xy(degree)
-    predicted = instance.ols(features, features, mock_data)
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    # Plot the surface
-    ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
-                    cmap='viridis')
-    # Add labels and title
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    fig.savefig(f"figs/franke_function_predicted_{degree}_degrees.pdf")
+    parameters = instance.ols(features, features, mock_data,
+                             return_parameters=True)
+    ax.plot(parameters, label=f"deg {degree}")
+  ax.set_ylabel("")
+  ax.set_xlabel("")
+  plt.show()
+
+
+
 
 
 def franke_simple_mse_and_r2_analysis():
@@ -152,7 +161,15 @@ def bootstrap_analysis():
   degrees = np.arange(1, 6, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
-                                       degrees, hyperparameters)  
+                                       degrees, hyperparameters)
+  regression_methods = [instance.ols, instance.ridge]
+  instance.evaluate_model_mesh_bootstrap(instance.ols, mean_squared_error,50)
+
+  
+
+
+
+
   eval_funcs = [mean_squared_error, r2_score]
   for eval_func in eval_funcs:
     eval_model_mesh = \
@@ -192,14 +209,16 @@ def cross_validation_analysis():
       mses = instance.evaluate_model_mesh_cross_validation(regression_method,
                                                            mean_squared_error,
                                                            k_fold)
-      mean_mses[i] = np.mean(mses)
+      ax.plot(k_folds, mses, label=label)
     label = convert_to_label(regression_method.__name__)
-    ax.plot(k_folds, mean_mses, label=label)
   ax.set_xlabel("k-folds")
   ax.set_ylabel("mean MSE")
   fig.legend()
   fig.tight_layout()
   fig.savefig(f"figs/crossval_analysis_mse_.pdf")
+
+
+
 
 
 def terrain():
@@ -270,7 +289,7 @@ def total_mses_terrain():
   y = np.linspace(0,1,data_downsampled.shape[1])
   z = data_downsampled.ravel().astype(np.float64)
   degrees = np.arange(1,16)
-  hyperparameters = np.logspace(-4,0,10, dtype=float)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, z, degrees, hyperparameters)
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   eval_pred_methods = [instance.evaluate_predicted,
@@ -286,9 +305,9 @@ def total_mses_terrain():
 
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  #simple_degree_analysis()
+  simple_degree_analysis()
   #franke_simple_mse_and_r2_analysis()
-  bootstrap_analysis()
+  #bootstrap_analysis()
   # cross_validation_analysis()
   #franke()
   #terrain()

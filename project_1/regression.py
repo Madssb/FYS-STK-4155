@@ -111,7 +111,7 @@ class LinearRegression2D:
     return features_xy
 
   def ols(self, features_train: np.ndarray, features_test: np.ndarray,
-          z_train: np.ndarray) -> np.ndarray:
+          z_train: np.ndarray, return_parameters=False) -> np.ndarray:
     """
     Implement Ordinary least squares regression for initialized or specified
     training set and test set.
@@ -137,6 +137,8 @@ class LinearRegression2D:
         np.transpose(features_train) @ features_train
     ) @ np.transpose(features_train) @ z_train
     predicted = features_test @ optimal_parameters
+    if return_parameters:
+      return optimal_parameters
     return predicted
 
   def ridge(self, features_train: np.ndarray,
@@ -262,10 +264,10 @@ class LinearRegression2D:
       model_eval = model_eval_func(predicted)
     return model_eval
 
-  def evaluate_model_bootstrap(self, degree: int, hyperparameter: float,
-                               regression_method: callable,
-                               model_eval_func: callable,
-                               n_bootstraps: int) -> float:
+  def evaluate_bootstrap(self, degree: int, hyperparameter: float,
+                         regression_method: callable,
+                         model_eval_func: callable,
+                         n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
     with bootstrapping.
@@ -398,6 +400,9 @@ class LinearRegression2D:
 
 
     """
+
+    assert regression_method in [self.ols, self.ridge, self.lasso]
+    assert model_eval_func in [mean_squared_error, r2_score, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
@@ -436,20 +441,22 @@ class LinearRegression2D:
 
 
     """
+    assert regression_method in [self.ols, self.ridge, self.lasso]
+    assert model_eval_func in [mean_squared_error, r2_score, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
-        eval_mesh[i] = self.evaluate_model_bootstrap(degree, None,
-                                                     regression_method,
-                                                     model_eval_func,
-                                                     n_bootstraps)
+        eval_mesh[i] = self.evaluate_bootstrap(degree, None,
+                                               regression_method,
+                                               model_eval_func,
+                                               n_bootstraps)
       return eval_mesh
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
-        eval_mesh[i, j] = self.evaluate_model_bootstrap(degree, hyperparameter,
-                                                        regression_method,
-                                                        model_eval_func,
-                                                        n_bootstraps)
+        eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
+                                                  regression_method,
+                                                  model_eval_func,
+                                                  n_bootstraps)
     return eval_mesh
 
   def evaluate_model_mesh_cross_validation(self, regression_method: callable,
@@ -477,22 +484,23 @@ class LinearRegression2D:
 
 
     """
+    assert regression_method in [self.ols, self.ridge, self.lasso]
+    assert model_eval_func in [mean_squared_error, r2_score, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
-        eval_mesh[i] = self.evaluate_model_bootstrap(degree, None,
-                                                     regression_method,
-                                                     model_eval_func,
-                                                     k_folds)
+        eval_mesh[i] = self.evaluate_bootstrap(degree, None,
+                                               regression_method,
+                                               model_eval_func,
+                                               k_folds)
       return eval_mesh
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
-        eval_mesh[i, j] = self.evaluate_model_bootstrap(degree, hyperparameter,
-                                                        regression_method,
-                                                        model_eval_func,
-                                                        k_folds)
+        eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
+                                                  regression_method,
+                                                  model_eval_func,
+                                                  k_folds)
     return eval_mesh
-
 
   def visualize_ols(self, quantity: np.ndarray, ylabel: str, label: str = None):
     """
