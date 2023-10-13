@@ -10,7 +10,7 @@ Functions:
   analytical expression.
 """
 import numpy as np
-
+import re
 
 def franke_function(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   """
@@ -55,6 +55,31 @@ def my_figsize(column=True, subplots=(1, 1), ratio=None):
   fig_height = fig_width*fig_ratio*subplots[0]/subplots[1]
   fig_dim = (fig_width,fig_height)
   return fig_dim
+
+
+def convert_to_label(metric_name):
+    """
+    Replaces "mean_squared_error" with "MSE" and "r2_score" with "R2-score" in a given metric name.
+    """
+    # Use regular expressions to search for the function names in the metric name
+    mse_match = re.search(r"mean_squared_error", metric_name)
+    r2_score_match = re.search(r"r2_score", metric_name)
+    ols_match = re.search(r"ols", metric_name)
+    ridge_match = re.search(r"ridge", metric_name)
+    lasso_match = re.search(r"lasso", metric_name)
+
+    # Replace the function names with the desired format
+    if mse_match:
+        metric_name = re.sub(r"mean_squared_error", "MSE", metric_name)
+    if r2_score_match:
+        metric_name = re.sub(r"r2_score", "R2-score", metric_name)
+    if ols_match:
+       metric_name = re.sub(r"ols", "OLS", metric_name)
+    if ridge_match:
+       metric_name = re.sub(r"ridge", "Ridge", metric_name)
+    if lasso_match:
+       metric_name = re.sub(r"lasso", "Lasso", metric_name)
+    return metric_name
 
 
 if __name__ == '__main__':

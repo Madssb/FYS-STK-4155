@@ -21,7 +21,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               test_size = 0.2, n_subsets = 5, center=True, normalize=True):
+               test_size = 0.2, center=True, normalize=True):
     """
     Instantiate LinearRegression2D object.
 
@@ -57,13 +57,16 @@ class LinearRegression2D:
     self.y = y
     self.z = z
     if center:
+      self.x -= np.mean(self.x)
+      self.y -= np.mean(self.y)
       self.z -= np.mean(self.z)
     if normalize:
+      self.x /= np.std(x)
+      self.y /= np.std(y)
       self.z /= np.std(z)
     self.degrees = degrees
     self.hyperparameters = hyperparameters
     self.test_size = test_size
-    self.n_subsets = n_subsets
     self.center = center
     self.normalize = normalize
   
@@ -89,7 +92,7 @@ class LinearRegression2D:
 
     
     """
-    assert isinstance(degree, (int, np.integer))
+    assert isinstance(degree, (int, np.integer)), f"{degree=}"
     len_x = self.x.shape[0]
     len_y = self.y.shape[0]
     features_xy = np.empty(
@@ -102,10 +105,6 @@ class LinearRegression2D:
           for l in range(degree + 1 - k):
             features_xy[row, col_count] = x_**k*y_**l
             col_count += 1
-    if self.center:
-      features_xy -= np.mean(features_xy, axis=0, keepdims=True)
-    if self.normalize:
-      features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 
   def ols(self, features_train: np.ndarray, features_test: np.ndarray,
@@ -172,8 +171,7 @@ class LinearRegression2D:
         + np.identity(features_train.shape[1])*hyperparameter
     ) @ np.transpose(features_train) @ z_train
     predicted = features_test @ optimal_parameters
-    trained = features_train @ optimal_parameters
-    return predicted, trained
+    return predicted
 
   def lasso(self, features_train: np.ndarray,
             features_test: np.ndarray, z_train: np.ndarray,
@@ -259,10 +257,15 @@ class LinearRegression2D:
       model_eval = model_eval_func(predicted)
     return model_eval
 
-  def evaluate_predicted_crossval(self, degree: int, 
-                                   hyperparameter: float,
+  def evaluate_predicted_bootstrap(self, degree: int, hyperparameter: float,
                                    regression_method: callable,
                                    model_eval_func: callable) -> float:
+    pass
+
+  def evaluate_predicted_crossval(self, degree: int, hyperparameter: float,
+                                  regression_method: callable,
+                                  model_eval_func: callable,
+                                  k_folds: int) -> float:
     """
     Compute averaged model evaluation for specified regression method
     with bootstrap.
@@ -295,7 +298,7 @@ class LinearRegression2D:
     features = self.features_polynomial_xy(degree)
     response = self.z
     shuffled_indices = np.random.permutation(np.arange(response.shape[0]))
-    indice_subsets = np.array_split(shuffled_indices, self.n_subsets)
+    indice_subsets = np.array_split(shuffled_indices, k_folds)
     cumulative_model_eval = 0
     for test_set_indices in indice_subsets:
       training_set_indices = np.delete(shuffled_indices, test_set_indices)
@@ -304,19 +307,21 @@ class LinearRegression2D:
       seen = response[training_set_indices]
       unseen = response[test_set_indices]
       try:
-        predicted = regression_method(features_train, features_test, seen, hyperparameter)
+        predicted = regression_method(features_train, features_test, seen,
+                                      hyperparameter)
       except TypeError:
         predicted = regression_method(features_train, features_test, seen)
       try:
         cumulative_model_eval += model_eval_func(unseen, predicted)
       except TypeError:
         cumulative_model_eval += model_eval_func(predicted)
-      avg_model_eval = cumulative_model_eval/self.n_subsets
-      return avg_model_eval
+    avg_model_eval = cumulative_model_eval/k_folds
+    return avg_model_eval
 
   def evaluate_model_mesh(self, regression_method: callable,
                           model_eval_func: callable,
-                          eval_predicted_method: callable) -> np.ndarray:
+                          eval_predicted_method: callable, k_folds: int=5
+                          ) -> np.ndarray:
     """
     Compute model evaluation quantity for specified regression method,
     with/without bootstrap, on degrees and hyperparameters mesh.
@@ -343,20 +348,32 @@ class LinearRegression2D:
     err_msg = "eval_predicted_method not method in Linearregression2D"
     assert eval_predicted_method in eval_predicted_methods, err_msg
     if regression_method == self.ols:
-      model_eval_array = np.empty_like(self.degrees, dtype=float)
+      eval_mesh = np.empty_like(self.degrees, dtype=float)
+      if eval_predicted_method == self.evaluate_predicted_crossval:
+        for i, degree in enumerate(self.degrees):
+          eval_mesh[i] = eval_predicted_method(degree, None, regression_method,
+                                               model_eval_func, k_folds)
+        return eval_mesh
       for i, degree in enumerate(self.degrees):
-        model_eval_array[i] = eval_predicted_method(degree, None, 
-                                                    regression_method, 
-                                                    model_eval_func)
-      return model_eval_array
-    model_eval_array = np.empty((self.degrees.shape[0],
-                                 self.hyperparameters.shape[0]), dtype=float)
+        eval_mesh[i] = eval_predicted_method(degree, None, regression_method,
+                                             model_eval_func)
+      return eval_mesh
+    eval_mesh = np.empty(
+      (self.degrees.shape[0], self.hyperparameters.shape[0]), dtype=float)
+    if eval_predicted_method == self.evaluate_predicted_crossval:
+      for i, degree in enumerate(self.degrees):
+        for j, hyperparameter in enumerate (self.hyperparameters):
+          eval_mesh[i, j] = eval_predicted_method(degree, hyperparameter,
+                                                  regression_method,
+                                                  model_eval_func, k_folds)
+      return eval_mesh
     for i, degree in enumerate(self.degrees):
-      for j, hyperparameter in enumerate(self.hyperparameters):
-         model_eval_array[i, j] = eval_predicted_method(degree, hyperparameter,
-                                                        regression_method, 
-                                                        model_eval_func)
-    return model_eval_array
+      for j, hyperparameter in enumerate (self.hyperparameters):
+        eval_mesh[i, j] = eval_predicted_method(degree, hyperparameter,
+                                                regression_method,
+                                                model_eval_func)
+    return eval_mesh
+
 
   def visualize_ols(self, quantity: np.ndarray, ylabel: str, label: str = None):
     """
