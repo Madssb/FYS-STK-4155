@@ -62,12 +62,8 @@ class LinearRegression2D:
     self.y = y
     self.z = z
     if center:
-      self.x -= np.mean(self.x)
-      self.y -= np.mean(self.y)
       self.z -= np.mean(self.z)
     if normalize:
-      self.x /= np.std(x)
-      self.y /= np.std(y)
       self.z /= np.std(z)
     self.degrees = degrees
     self.hyperparameters = hyperparameters
