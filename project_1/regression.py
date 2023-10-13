@@ -110,9 +110,9 @@ class LinearRegression2D:
             features_xy[row, col_count] = x_**k*y_**l
             col_count += 1
     if self.center:
-      features_xy -= np.mean(features_xy, axis=1)
+      features_xy -= np.mean(features_xy, axis=0, keepdims=True)
     if self.normalize:
-      features_xy[1:,:] /= np.std(features_xy[1:,:])
+      features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 
   def ols(self, features_train: np.ndarray, features_test: np.ndarray,
