@@ -51,7 +51,7 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
 
 
 
-def simple_degree_analysis():
+def simple_degree_analysis(points=20, sigma=0.1):
   """
   Compute predicted for franke function mesh with synthetic noise, with ols and
   complexity ranging from 1 degree to 5 degree order x and y polynomial.
@@ -59,11 +59,11 @@ def simple_degree_analysis():
   without synthetic noise.
   """
   np.random.seed(2023)
-  x = np.arange(0, 1, 0.05)
-  y = np.arange(0, 1, 0.05) 
+  x = np.arange(0, 1, 1/points)
+  y = np.arange(0, 1, 1/points) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)
+  noise = np.random.normal(0, 1, sigma)
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
 
@@ -95,6 +95,7 @@ def simple_degree_analysis():
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    instance.plot_terrain_3D()
     fig.savefig(f"figs/franke_function_predicted_{degree}_degrees.pdf")
 
 
@@ -255,10 +256,10 @@ def total_mses_terrain():
       print(f"mean mse {regression_method.__name__}: {mean_mse:.4g}")
 
 if __name__ == '__main__':
-  warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  #simple_degree_analysis()
+  # warnings.filterwarnings('ignore', category=ConvergenceWarning)
+  simple_degree_analysis()
   #franke_simple_mse_and_r2_analysis()
-  cross_validation_analysis()
+  # cross_validation_analysis()
   #franke()
   #terrain()
   #total_mses_franke()
