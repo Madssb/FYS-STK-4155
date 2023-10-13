@@ -304,15 +304,28 @@ class LinearRegression2D:
     response = self.z
     features_train, features_test, seen, unseen = \
         train_test_split(features, response, test_size=self.test_size)
-
+    
+    #unseen = np.expand_dims(unseen, axis=1)
+    #predictions = np.empty((np.shape(unseen)[0], n_bootstraps))
+    #for i in range(n_bootstraps):
+    #  features_train_, seen_ = resample(features_train, seen)
+    #  try:
+    #    predictions[:,i] = regression_method(features_train_, features_test, seen_,
+    #                                  hyperparameter)
+    #  except TypeError:
+    #    predictions[:,i] = regression_method(features_train_, features_test, seen)
+    #  
+    #error = np.mean( np.mean((unseen - predictions)**2, axis=1, keepdims=True) )
+    #return error
+    
     cumulative_model_eval = 0
     for _ in range(n_bootstraps):
-      features_train, seen = resample(features_train, seen)
+      features_train_, seen_ = resample(features_train, seen)
       try:
-        predicted = regression_method(features_train, features_test, seen,
+        predicted = regression_method(features_train_, features_test, seen_,
                                       hyperparameter)
       except TypeError:
-        predicted = regression_method(features_train, features_test, seen)
+        predicted = regression_method(features_train_, features_test, seen)
       try:
         cumulative_model_eval += model_eval_func(unseen, predicted)
       except TypeError:
