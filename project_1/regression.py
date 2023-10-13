@@ -406,9 +406,10 @@ class LinearRegression2D:
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
-        eval_mesh[i] = self.eval(degree, None, regression_method,
+        eval_mesh[i] = self.evaluate_model(degree, None, regression_method,
                                  model_eval_func)
       return eval_mesh
+    eval_mesh = np.empty((len(self.degrees),len(self.hyperparameters)), dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[i, j] = self.evaluate_model(degree, hyperparameter,
