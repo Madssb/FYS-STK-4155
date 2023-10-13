@@ -61,14 +61,13 @@ def simple_degree_analysis():
   np.random.seed(2023)
   n_pts = 400
   xy_stepsize = 1/np.sqrt(n_pts)
-  x = np.arange(0, 1, xy_stepsize)
-  y = np.arange(0, 1, xy_stepsize) 
+  x = np.arange(0, 1, 0.05)
+  y = np.arange(0, 1, 0.05) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
-
   instance = LinearRegression2D(x, y, mock_data)
   fig = plt.figure()
   ax = fig.add_subplot(111, projection='3d')
@@ -90,7 +89,8 @@ def simple_degree_analysis():
                             return_parameters=True)
   fig = plt.figure()
   ax = fig.add_subplot(111, projection='3d')
-  ax.plot_surface(x_mesh, y_mesh,predicted, cmap='viridis')
+  ax.plot_surface(x_mesh, y_mesh,predicted.reshape(x_mesh.shape),
+                  cmap='viridis')
   ax.set_xlabel('X')
   ax.set_ylabel('Y')
   ax.set_zlabel('Z')
