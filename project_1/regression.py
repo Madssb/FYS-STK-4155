@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 from utilities import (my_figsize)
 from sklearn.utils import resample
-from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
+from model_evaluation_metrics import (mean_squared_error, mean_squared_error_bootstrapped,
+                                      r2_score, bias,
                                       variance)
 from typing import Tuple
 
@@ -294,7 +295,7 @@ class LinearRegression2D:
 
 
     """
-    model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
+    model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
     err_msg = "model_eval_func not a permitted Model evaluation callable"
     assert model_eval_func in model_eval_funcs, err_msg
     regression_methods = [self.ols, self.ridge, self.lasso]
@@ -305,32 +306,36 @@ class LinearRegression2D:
     features_train, features_test, seen, unseen = \
         train_test_split(features, response, test_size=self.test_size)
     
-    #unseen = np.expand_dims(unseen, axis=1)
-    #predictions = np.empty((np.shape(unseen)[0], n_bootstraps))
-    #for i in range(n_bootstraps):
-    #  features_train_, seen_ = resample(features_train, seen)
-    #  try:
-    #    predictions[:,i] = regression_method(features_train_, features_test, seen_,
-    #                                  hyperparameter)
-    #  except TypeError:
-    #    predictions[:,i] = regression_method(features_train_, features_test, seen)
-    #  
-    #error = np.mean( np.mean((unseen - predictions)**2, axis=1, keepdims=True) )
-    #return error
-    
-    cumulative_model_eval = 0
-    for _ in range(n_bootstraps):
+    unseen = np.expand_dims(unseen, axis=1)
+    predictions = np.empty((np.shape(unseen)[0], n_bootstraps))
+    for i in range(n_bootstraps):
       features_train_, seen_ = resample(features_train, seen)
       try:
-        predicted = regression_method(features_train_, features_test, seen_,
+        predictions[:,i] = regression_method(features_train_, features_test, seen_,
                                       hyperparameter)
       except TypeError:
-        predicted = regression_method(features_train_, features_test, seen)
-      try:
-        cumulative_model_eval += model_eval_func(unseen, predicted)
-      except TypeError:
-        cumulative_model_eval += model_eval_func(predicted)
-    return cumulative_model_eval/n_bootstraps
+        predictions[:,i] = regression_method(features_train_, features_test, seen)
+    
+    try:
+      model_eval = model_eval_func(unseen, predictions)
+    except TypeError:
+      model_eval = model_eval_func(predictions)
+
+    return model_eval
+    
+    #cumulative_model_eval = 0
+    #for _ in range(n_bootstraps):
+    #  features_train_, seen_ = resample(features_train, seen)
+    #  try:
+    #    predicted = regression_method(features_train_, features_test, seen_,
+    #                                  hyperparameter)
+    #  except TypeError:
+    #    predicted = regression_method(features_train_, features_test, seen)
+    #  try:
+    #    cumulative_model_eval += model_eval_func(unseen, predicted)
+    #  except TypeError:
+    #    cumulative_model_eval += model_eval_func(predicted)
+    #return cumulative_model_eval/n_bootstraps
 
   def evaluate_crossval(self, degree: int, hyperparameter: float,
                         regression_method: callable, model_eval_func: callable,
@@ -422,8 +427,7 @@ class LinearRegression2D:
         eval_mesh[i] = self.evaluate_model(degree, None, regression_method,
                                  model_eval_func)
       return eval_mesh
-    eval_mesh = np.empty((self.degrees.shape[0],self.hyperparameters.shape[0]),
-                         dtype=float)
+    eval_mesh = np.empty((len(self.degrees),len(self.hyperparameters)), dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[i, j] = self.evaluate_model(degree, hyperparameter,
@@ -457,7 +461,7 @@ class LinearRegression2D:
 
     """
     assert regression_method in [self.ols, self.ridge, self.lasso]
-    assert model_eval_func in [mean_squared_error, r2_score, bias, variance]
+    assert model_eval_func in [mean_squared_error_bootstrapped, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
@@ -466,8 +470,6 @@ class LinearRegression2D:
                                                model_eval_func,
                                                n_bootstraps)
       return eval_mesh
-    eval_mesh = np.empty((self.degrees.shape[0],self.hyperparameters.shape[0]),
-                         dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
@@ -511,8 +513,6 @@ class LinearRegression2D:
                                                model_eval_func,
                                                k_folds)
       return eval_mesh
-    eval_mesh = np.empty((self.degrees.shape[0],self.hyperparameters.shape[0]),
-                         dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
