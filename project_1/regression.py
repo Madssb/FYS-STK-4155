@@ -567,8 +567,14 @@ class LinearRegression2D:
       """ Plot entire terrain dataset """
       fig, ax = plt.subplots()
       plt.title('Terrain')
+      z = np.concatenate(self.z, axis=None)
+      # to allow irregular grids
+      if len(self.y) > len(self.x):
+        z_plot = np.array_split(z, len(self.y))
+      elif len(self.y) < len(self.x) or len(self.y) == len(self.x):
+        z_plot = np.array_split(z, len(self.x))
       # x_mesh, y_mesh = np.meshgrid(self.x, self.y)
-      ax.imshow(self.z, cmap='viridis')
+      ax.imshow(z_plot, cmap='viridis')
       plt.xlabel('X')
       plt.ylabel('Y')
       plt.show()
@@ -576,14 +582,19 @@ class LinearRegression2D:
   def plot_terrain_3D(self):
       """ Plot 3D terrain of zoomed in area """
       fig = plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection = '3d')
       plt.title('Terrain 3D')
       x, y = np.meshgrid(self.x, self.y)
-      self.z = np.concatenate(self.z, axis=None)
-      z_plot = np.array_split(self.z, len(self.x))
+      z = np.concatenate(self.z, axis=None)
+      # to allow irregular grids
+      if len(self.y) < len(self.x):
+        z_plot = np.array_split(z, len(self.y))
+      elif len(self.y) > len(self.x) or len(self.y) == len(self.x):
+        z_plot = np.array_split(z, len(self.x))
       z_plot = np.array(z_plot)
-      surf = ax.plot_surface(
-          x, y, z_plot, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False)
+      # print(z_plot.shape, x.shape, y.shape)
+      # exit()
+      surf = ax.plot_surface(x, y, z_plot, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False)
       fig.colorbar(surf, shrink=0.5, aspect=5)
       plt.show()
 
