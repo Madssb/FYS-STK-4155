@@ -51,7 +51,7 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
 
 
 
-def simple_degree_analysis(points=20, sigma=0.1):
+def simple_degree_analysis():
   """
   Compute predicted for franke function mesh with synthetic noise, with ols and
   complexity ranging from 1 degree to 5 degree order x and y polynomial.
@@ -59,11 +59,13 @@ def simple_degree_analysis(points=20, sigma=0.1):
   without synthetic noise.
   """
   np.random.seed(2023)
-  x = np.arange(0, 1, 1/points)
-  y = np.arange(0, 1, 1/points) 
+  n_pts = 400
+  xy_stepsize = 1/np.sqrt(n_pts)
+  x = np.arange(0, 1, xy_stepsize)
+  y = np.arange(0, 1, xy_stepsize) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, sigma)
+  noise = np.random.normal(0, 1)
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
 
@@ -105,7 +107,40 @@ def franke_simple_mse_and_r2_analysis():
   Ridge and Lasso regression for complexities spanning one to five degrees,
   and hyperparameter logspace of 10**-4 to 10**4. Evaluate predicted with
   MSE and r2, and visualize model evaluation.
- 
+
+
+  """
+  np.random.seed(2023)
+  x = np.arange(0, 1, 0.05)
+  y = np.arange(0, 1, 0.05) 
+  x_mesh, y_mesh = np.meshgrid(x, y)
+  analytic = franke_function(x_mesh, y_mesh)
+  noise = np.random.normal(0, 1, x_mesh.shape)
+  mock_data = (analytic + noise).ravel()
+  degrees = np.arange(1, 6, dtype=int)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  instance = LinearRegression2D(x, y, mock_data,
+                                       degrees, hyperparameters)
+  regression_methods = [instance.ols, instance.ridge, instance.lasso]
+  eval_funcs = [mean_squared_error, r2_score]
+  for regression_method in regression_methods:
+    filename = f"figs/simple_franke_{regression_method.__name__}"
+    for eval_func in eval_funcs:
+      eval_model_mesh = \
+          instance.evaluate_model_mesh(regression_method, eval_func)
+      filename += f"{eval_func.__name__}.pdf"
+      ylabel = convert_to_label(eval_func.__name__)
+      fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
+      fig.savefig(filename)
+
+
+def bootstrap_analysis():
+  """
+  Compute predicteds for franke function mesh with synthetic noise, with OLS
+  for complexities spanning one to five degrees, and hyperparameter logspace of
+  10**-4 to 10**4. Evaluate predicteds with MSE and r2, with bootstrapping, and
+  visualize model evaluations.
+
 
   """
   np.random.seed(2023)
@@ -119,28 +154,24 @@ def franke_simple_mse_and_r2_analysis():
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)  
-  regression_methods = [instance.ols, instance.ridge, instance.lasso]
   eval_funcs = [mean_squared_error, r2_score]
-  for regression_method in regression_methods:
-    for eval_func in eval_funcs:
-      eval_model_mesh = \
-          instance.evaluate_model_mesh(regression_method,
-                                       eval_func,
-                                       instance.evaluate_predicted)
-      suffix = f"{regression_method.__name__}_{eval_func.__name__}.pdf"
-      filename = f"figs/simple_franke_{suffix}"
-      ylabel = convert_to_label(eval_func.__name__)
-      if regression_method == instance.ols:
-        fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
-        fig.savefig(filename)
-      else:
-        fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
-        fig.savefig(filename)
+  for eval_func in eval_funcs:
+    eval_model_mesh = \
+        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_func,
+                                               100)
+    filename = f"figs/simple_franke_ols_{eval_func.__name__}_100_bootstraps.pdf"
+    ylabel = convert_to_label(eval_func.__name__)
+    fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
+    plt.show()
+    fig.savefig(filename)
 
 
 def cross_validation_analysis():
   """
-  
+  Compute predicted for franke function mesh with synthetic noise, With ols,
+  Ridge, and Lasso regression, for complexities spanning one to five degrees,
+  and logspaced hyperparameter spanning 10**-4 to 10**4. Evaluate predicteds
+  with MSE, with bootstrapping, and visualize mean of MSEs
   """
   np.random.seed(2023)
   x = np.arange(0, 1, 0.05)
@@ -159,10 +190,9 @@ def cross_validation_analysis():
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   for regression_method in regression_methods:
     for i, k_fold in enumerate(k_folds):
-      mses = instance.evaluate_model_mesh(regression_method,
-                                          mean_squared_error,
-                                          instance.evaluate_predicted_crossval,
-                                          k_fold)
+      mses = instance.evaluate_model_mesh_cross_validation(regression_method,
+                                                           mean_squared_error,
+                                                           k_fold)
       mean_mses[i] = np.mean(mses)
     label = convert_to_label(regression_method.__name__)
     ax.plot(k_folds, mean_mses, label=label)
@@ -257,8 +287,9 @@ def total_mses_terrain():
 
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  simple_degree_analysis()
+  #simple_degree_analysis()
   #franke_simple_mse_and_r2_analysis()
+  bootstrap_analysis()
   # cross_validation_analysis()
   #franke()
   #terrain()
