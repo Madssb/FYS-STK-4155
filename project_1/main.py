@@ -52,7 +52,6 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
 
 
 def simple_degree_analysis():
-def simple_degree_analysis():
   """
   Compute predicted for franke function mesh with synthetic noise, with ols and
   complexity ranging from 1 degree to 5 degree order x and y polynomial.
@@ -66,7 +65,7 @@ def simple_degree_analysis():
   y = np.arange(0, 1, xy_stepsize) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1)
+  noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
 

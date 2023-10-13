@@ -216,8 +216,8 @@ class LinearRegression2D:
     return predicted
 
   def evaluate_model(self, degree: int, hyperparameter: float,
-                         regression_method: callable,
-                         model_eval_func: callable) -> float:
+                     regression_method: callable,
+                     model_eval_func: callable) -> float:
     """
     Compute model evaluation quantity for specified regression method.
 
