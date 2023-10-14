@@ -267,7 +267,7 @@ class LinearRegression2D:
 
   def evaluate_bootstrap(self, degree: int, hyperparameter: float,
                          regression_method: callable,
-                         model_eval_func: callable,
+                         model_eval_funcs: callable,
                          n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
@@ -297,7 +297,7 @@ class LinearRegression2D:
     """
     model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
     err_msg = "model_eval_func not a permitted Model evaluation callable"
-    assert model_eval_func in model_eval_funcs, err_msg
+    #assert model_eval_funcs.any() in model_eval_funcs, err_msg
     regression_methods = [self.ols, self.ridge, self.lasso]
     err_msg = "regression_method not method in LinearRegression2D."
     assert regression_method in regression_methods, err_msg
@@ -314,14 +314,17 @@ class LinearRegression2D:
         predictions[:,i] = regression_method(features_train_, features_test, seen_,
                                       hyperparameter)
       except TypeError:
-        predictions[:,i] = regression_method(features_train_, features_test, seen)
+        predictions[:,i] = regression_method(features_train_, features_test, seen_)
     
-    try:
-      model_eval = model_eval_func(unseen, predictions)
-    except TypeError:
-      model_eval = model_eval_func(predictions)
+    model_evals = []
+    for model_eval_func in model_eval_funcs:
+      try:
+        model_evals.append(model_eval_func(unseen, predictions))
+      except TypeError:
+        model_evals.append(model_eval_func(predictions))
 
-    return model_eval
+
+    return model_evals
     
     #cumulative_model_eval = 0
     #for _ in range(n_bootstraps):
@@ -467,7 +470,7 @@ class LinearRegression2D:
       for i, degree in enumerate(self.degrees):
         eval_mesh[i] = self.evaluate_bootstrap(degree, None,
                                                regression_method,
-                                               model_eval_func,
+                                               model_eval_funcs,
                                                n_bootstraps)
       return eval_mesh
     for i, degree in enumerate(self.degrees):

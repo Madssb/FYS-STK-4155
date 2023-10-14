@@ -171,8 +171,8 @@ def bootstrap_analysis():
 
 
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
-  for eval_func in eval_funcs:
-    eval_model_mesh = \
+  #for eval_func in eval_funcs:
+  #  eval_model_mesh = \
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_func,
                                                100)
     filename = f"figs/simple_franke_ols_{eval_func.__name__}_100_bootstraps.pdf"
