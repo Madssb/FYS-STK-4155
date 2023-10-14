@@ -225,7 +225,7 @@ def bootstrap_analysis():
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + 0.1*noise).ravel()
-  degrees = np.arange(1, 14, dtype=int)
+  degrees = np.arange(1, 20, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
@@ -246,6 +246,7 @@ def bootstrap_analysis():
   ax.legend()
   ax.set_xlabel("Polynomial degree")
   ax.set_ylabel("Error")
+  ax.set_xticks(degrees[::2])
   fig.tight_layout()
   filename += f"{n_bootstraps}_bootstraps.pdf"
   plt.show()
@@ -398,8 +399,8 @@ if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
   #franke_simple_mse_and_r2_analysis()
-  #bootstrap_analysis()
-  cross_validation_analysis()
+  bootstrap_analysis()
+  #cross_validation_analysis()
   #franke()
   #terrain()
   #total_mses_franke()
