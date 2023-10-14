@@ -208,12 +208,12 @@ def bootstrap_analysis():
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
   eval_func_names = ['MSE', 'bias', 'variance']
   eval_model_mesh = \
-        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval_funcs unødvendig argument, funka ikke å iterere over funksjoner
+        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
                                                100)
   filename = f"figs/simple_franke_ols_"
   fig, ax = plt.subplots(figsize=my_figsize())
   for i, eval_func in enumerate(eval_func_names):
-    ax.plot(d{n_bootstraps}_bootstraps.pdf"egrees, eval_model_mesh[i,:], label=eval_func)
+    ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
     filename += f"eval_func_"
   ax.legend()
   filename += f"{n_bootstraps}_bootstraps.pdf"
