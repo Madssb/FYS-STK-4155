@@ -177,11 +177,10 @@ def franke_simple_mse_and_r2_analysis():
 
   """
   np.random.seed(2023)
-  plt.style.use('ggplot')
-  pylab.rcParams.update(params)
-  points = 40
-  x = np.arange(0, 1, 1/points)
-  y = np.arange(0, 1, 1/points) 
+  #x = np.arange(0, 1, 0.05)
+  #y = np.arange(0, 1, 0.05)
+  x = np.linspace(0, 1, 40)
+  y = np.linspace(0, 1, 40) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
