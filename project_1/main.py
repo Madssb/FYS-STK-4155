@@ -219,8 +219,8 @@ def bootstrap_analysis():
   np.random.seed(2023)
   #x = np.arange(0, 1, 0.05)
   #y = np.arange(0, 1, 0.05) 
-  x = np.linspace(0, 1, 20)
-  y = np.linspace(0, 1, 20)
+  x = np.linspace(0, 1, 40)
+  y = np.linspace(0, 1, 40)
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
@@ -267,12 +267,14 @@ def cross_validation_analysis():
   with MSE, with bootstrapping, and visualize mean of MSEs
   """
   np.random.seed(2023)
-  x = np.arange(0, 1, 0.05)
-  y = np.arange(0, 1, 0.05) 
+  #x = np.arange(0, 1, 0.05)
+  #y = np.arange(0, 1, 0.05) 
+  x = np.linspace(0, 1, 40)
+  y = np.linspace(0, 1, 40)
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + noise).ravel()
+  mock_data = (analytic + 0.1*noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
   hyperparameters = np.logspace(-4,0,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
@@ -302,7 +304,8 @@ def cross_validation_analysis():
     clabel = "Mean MSE"                                                       
     fig, ax = instance.visualize_mse_ridge(eval_model_mesh, clabel)
     ax.set_xticks(degrees)
-    filename = f"figs/crossval_analysis_mse_{regression_method}.pdf"
+    label = convert_to_label(regression_method.__name__)
+    filename = f"figs/crossval_analysis_mse_{label}.pdf"
     fig.savefig(filename)
 
 
