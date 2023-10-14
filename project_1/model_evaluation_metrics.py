@@ -1,4 +1,5 @@
 import numpy as np
+import sklearn.metrics as skm
 """
 Contains functions that compute model evaluation metrics.
 """
@@ -50,10 +51,12 @@ def r2_score(observed: np.ndarray, estimate: np.ndarray) -> float:
   """
   err_msg = f"{observed.shape=} and {estimate.shape=}, expected same shapes."
   assert observed.shape == estimate.shape, err_msg
-  mse = mean_squared_error(observed, estimate)
-  mean_observed = np.mean(observed)*np.ones_like(observed)
-  return 1 - mse**2/mean_squared_error(observed, mean_observed)
-
+  #mse = mean_squared_error(observed, estimate)
+  #mean_observed = np.mean(observed)*np.ones_like(observed)
+  #return 1 - np.sum((observed - estimate)**2)**2/mean_squared_error(observed, mean_observed)
+  SSE = np.sum((observed - estimate)**2)
+  Var = np.sum((observed - np.mean(observed))**2)
+  return 1 - SSE/Var
 
 def bias(observed: np.ndarray, estimate: np.ndarray) -> float:
   """
