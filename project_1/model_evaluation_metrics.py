@@ -75,8 +75,8 @@ def bias(observed: np.ndarray, estimate: np.ndarray) -> float:
 
 
   """
-  estimate_mean = np.mean(estimate)*np.ones_like(estimate)
-  return np.mean((observed - estimate_mean)**2)
+  estimate_mean = np.mean(estimate, axis=1, keepdims=True)
+  return np.mean(observed - estimate_mean)**2 
 
 
 def variance(estimate: np.ndarray) -> float:
@@ -88,11 +88,17 @@ def variance(estimate: np.ndarray) -> float:
   ----------
   estimate: x-dimensional array of floats
     Trained parameters applied on observed input.
-
+(
   
   Returns
   -------
   float:
     variance of estimate
   """
-  return bias(estimate, estimate)
+
+  return np.mean(np.var(estimate, axis=1, keepdims=True)) 
+
+def mean_squared_error_bootstrapped(observed: np.ndarray, estimate: np.ndarray) -> float:
+
+  mse = np.mean(np.mean((observed - estimate)**2, axis=1, keepdims=True))
+  return mse

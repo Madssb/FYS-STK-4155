@@ -8,9 +8,10 @@ import numpy as np
 import warnings
 
 from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
-                                      variance)
+                                      variance, mean_squared_error_bootstrapped)
 from utilities import (franke_function, convert_to_label, my_figsize)
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from sklearn.model_selection import train_test_split
 from matplotlib.ticker import FuncFormatter
 from matplotlib import cm
 from sklearn.model_selection import train_test_split
@@ -113,7 +114,7 @@ def simple_degree_analysis():
   fig = plt.figure()
   ax = fig.add_subplot(111, projection='3d')
   ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
-                  cmap=pl.cm.coolwarm)
+                  cmap=plt.cm.coolwarm)
   ax.set_xlabel('x')
   ax.set_ylabel('y')
   ax.set_zlabel('z')
@@ -202,14 +203,14 @@ def bootstrap_analysis():
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
   regression_methods = [instance.ols, instance.ridge]
-  instance.evaluate_model_mesh_bootstrap(instance.ols, mean_squared_error,50)
+  instance.evaluate_model_mesh_bootstrap(instance.ols, mean_squared_error_bootstrapped,50)
 
   
 
 
 
 
-  eval_funcs = [mean_squared_error, r2_score]
+  eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
   for eval_func in eval_funcs:
     eval_model_mesh = \
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_func,
@@ -344,9 +345,9 @@ def total_mses_terrain():
 
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  simple_degree_analysis()
+  #simple_degree_analysis()
   #franke_simple_mse_and_r2_analysis()
-  #bootstrap_analysis()
+  bootstrap_analysis()
   # cross_validation_analysis()
   #franke()
   #terrain()
