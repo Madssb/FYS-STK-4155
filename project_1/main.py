@@ -274,27 +274,36 @@ def cross_validation_analysis():
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  hyperparameters = np.logspace(-4,0,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters) 
   k_folds = np.arange(5,11, dtype=int)
   mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
-  regression_methods = [instance.ols, instance.ridge, instance.lasso]
-  for regression_method in regression_methods:
-    fig, ax = plt.subplots(figsize=my_figsize())
-    for i, k_fold in enumerate(k_folds):
-      mses = instance.evaluate_model_mesh_cross_validation(regression_method,
+  fig, ax = plt.subplots(figsize=my_figsize())
+  for i, k_fold in enumerate(k_folds):
+    mses = instance.evaluate_model_mesh_cross_validation(instance.ols,
                                                            mean_squared_error,
                                                            k_fold)
-      ax.plot(degrees, mses, label=f"{k_fold}")
-    label = convert_to_label(regression_method.__name__)
-    ax.set_xlabel("Polynomial degree")
-    ax.set_ylabel("Mean MSE")
-    fig.legend()
-    fig.tight_layout()
-    fig.savefig(f"figs/crossval_analysis_mse_{label}.pdf")
-    plt.clf()
-    plt.close(fig)
+    ax.plot(degrees, mses, label=f"{k_fold}")
+  ax.set_ylabel("Mean MSE")
+  ax.set_xlabel("Polynomial degree")
+  fig.legend()
+  fig.tight_layout()
+  fig.savefig(f"figs/crossval_analysis_mse_ols.pdf")
+  plt.clf()
+  plt.close(fig)
+  
+  regression_methods = [instance.ridge, instance.lasso]
+  kfold = 5
+  for regression_method in regression_methods:
+    eval_model_mesh = instance.evaluate_model_mesh_cross_validation(regression_method,
+                                                           mean_squared_error,
+                                                           k_fold)
+    clabel = "Mean MSE"                                                       
+    fig, ax = instance.visualize_mse_ridge(eval_model_mesh, clabel)
+    ax.set_xticks(degrees)
+    filename = f"figs/crossval_analysis_mse_{regression_method}.pdf"
+    fig.savefig(filename)
 
 
 
@@ -385,9 +394,9 @@ def total_mses_terrain():
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
-  franke_simple_mse_and_r2_analysis()
+  #franke_simple_mse_and_r2_analysis()
   #bootstrap_analysis()
-  #cross_validation_analysis()
+  cross_validation_analysis()
   #franke()
   #terrain()
   #total_mses_franke()
