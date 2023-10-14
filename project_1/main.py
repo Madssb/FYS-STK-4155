@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import warnings
+import seaborn as sns 
+sns.set_theme()
 
 from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
                                       variance, mean_squared_error_bootstrapped)
@@ -164,7 +166,7 @@ def franke_simple_mse_and_r2_analysis():
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + noise).ravel()
+  mock_data = (analytic + 0.1*noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
@@ -216,6 +218,9 @@ def bootstrap_analysis():
     ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
     filename += f"{eval_func}_"
   ax.legend()
+  ax.set_xlabel("Polynomial degrees")
+  ax.set_ylabel("Error")
+  fig.tight_layout()
   filename += f"{n_bootstraps}_bootstraps.pdf"
   plt.show()
   fig.savefig(filename)
