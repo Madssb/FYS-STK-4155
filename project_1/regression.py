@@ -23,7 +23,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               test_size=0.2, center=True, normalize=True):
+               test_size=0.2, center=True, normalize=False):
     """
     Instantiate LinearRegression2D object.
 
@@ -516,14 +516,15 @@ class LinearRegression2D:
     if regression_method == self.ols:
       eval_mesh = np.empty_like(self.degrees, dtype=float)
       for i, degree in enumerate(self.degrees):
-        eval_mesh[i] = self.evaluate_bootstrap(degree, None,
+        eval_mesh[i] = self.evaluate_crossval(degree, None,
                                                regression_method,
                                                model_eval_func,
                                                k_folds)
       return eval_mesh
+    eval_mesh = np.empty((len(self.degrees), len(self.hyperparameters)), dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
-        eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
+        eval_mesh[i, j] = self.evaluate_crossval(degree, hyperparameter,
                                                   regression_method,
                                                   model_eval_func,
                                                   k_folds)

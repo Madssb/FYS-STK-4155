@@ -23,21 +23,21 @@ from regression import LinearRegression2D
 from PIL import Image
 
 # formatting plots and figures
-# plt.style.use('ggplot')
-# plt.rcParams.update({'font.size': 14})
-# plt.rcParams.update({'axes.grid': True})
-# plt.rc('legend', frameon=False)
-params = {'legend.fontsize': 25,
-			'figure.figsize': (12, 9),
-			'axes.labelsize': 25,
-			'axes.titlesize': 25,
-			'xtick.labelsize': 'x-large',
-			'ytick.labelsize': 'x-large',
-      'font.size': 14,
-      'axes.grid': True,
-      'legend.frameon': False,}
+plt.style.use('ggplot')
+plt.rcParams.update({'font.size': 10})
+plt.rcParams.update({'axes.grid': True})
+plt.rc('legend', frameon=False)
+#params = {'legend.fontsize': 25,
+#			'figure.figsize': (12, 9),
+#			'axes.labelsize': 25,
+#			'axes.titlesize': 25,
+#			'xtick.labelsize': 'x-large',
+#			'ytick.labelsize': 'x-large',
+#      'font.size': 14,
+#      'axes.grid': True,
+#      'legend.frameon': False,}
 
-# pylab.rcParams.update(params)
+#pylab.rcParams.update(params)
 
 
 
@@ -187,9 +187,10 @@ def franke_simple_mse_and_r2_analysis():
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + 0.1*noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  hyperparameters = np.logspace(-4,0,5, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
-                                       degrees, hyperparameters)
+                                       degrees, hyperparameters,
+                                       center=True, normalize=False)
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   eval_funcs = [mean_squared_error, r2_score]
   for regression_method in regression_methods:
@@ -199,7 +200,10 @@ def franke_simple_mse_and_r2_analysis():
       filename = f"figs/simple_franke_{regression_method.__name__}"
       filename += f"_{eval_func.__name__}.pdf"
       ylabel = convert_to_label(eval_func.__name__)
-      fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
+      if regression_method == instance.ols:
+        fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
+      else:
+        fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
       fig.savefig(filename)
 
 
@@ -213,8 +217,10 @@ def bootstrap_analysis():
 
   """
   np.random.seed(2023)
-  x = np.arange(0, 1, 0.05)
-  y = np.arange(0, 1, 0.05) 
+  #x = np.arange(0, 1, 0.05)
+  #y = np.arange(0, 1, 0.05) 
+  x = np.linspace(0, 1, 20)
+  y = np.linspace(0, 1, 20)
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
@@ -224,13 +230,14 @@ def bootstrap_analysis():
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
+  instance.ols(features_train= self.features_train, features_test=self.features_train)                                       
   regression_methods = [instance.ols, instance.ridge]
   
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
   eval_func_names = ['MSE', 'bias', 'variance']
   eval_model_mesh = \
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
-                                               100)
+                                               n_bootstraps)
   filename = f"figs/simple_franke_ols_"
   fig, ax = plt.subplots(figsize=my_figsize())
   for i, eval_func in enumerate(eval_func_names):
@@ -271,21 +278,23 @@ def cross_validation_analysis():
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters) 
   k_folds = np.arange(5,11, dtype=int)
-  mean_mses = np.empty_like(k_folds, dtype=float)
-  fig, ax = plt.subplots(figsize=my_figsize())
+  mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   for regression_method in regression_methods:
+    fig, ax = plt.subplots(figsize=my_figsize())
     for i, k_fold in enumerate(k_folds):
       mses = instance.evaluate_model_mesh_cross_validation(regression_method,
                                                            mean_squared_error,
                                                            k_fold)
-      ax.plot(k_folds, mses, label=label)
+      ax.plot(degrees, mses, label=f"{k_fold}")
     label = convert_to_label(regression_method.__name__)
-  ax.set_xlabel("k-folds")
-  ax.set_ylabel("mean MSE")
-  fig.legend()
-  fig.tight_layout()
-  fig.savefig(f"figs/crossval_analysis_mse_.pdf")
+    ax.set_xlabel("Polynomial degree")
+    ax.set_ylabel("Mean MSE")
+    fig.legend()
+    fig.tight_layout()
+    fig.savefig(f"figs/crossval_analysis_mse_{label}.pdf")
+    plt.clf()
+    plt.close(fig)
 
 
 
@@ -375,10 +384,10 @@ def total_mses_terrain():
 
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  # simple_degree_analysis()
+  #simple_degree_analysis()
   franke_simple_mse_and_r2_analysis()
   #bootstrap_analysis()
-  # cross_validation_analysis()
+  #cross_validation_analysis()
   #franke()
   #terrain()
   #total_mses_franke()
