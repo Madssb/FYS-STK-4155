@@ -198,7 +198,7 @@ def bootstrap_analysis():
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + 0.1*noise).ravel()
-  degrees = np.arange(1, 6, dtype=int)
+  degrees = np.arange(1, 15, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
@@ -214,7 +214,7 @@ def bootstrap_analysis():
   fig, ax = plt.subplots(figsize=my_figsize())
   for i, eval_func in enumerate(eval_func_names):
     ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
-    filename += f"eval_func_"
+    filename += f"{eval_func}_"
   ax.legend()
   filename += f"{n_bootstraps}_bootstraps.pdf"
   plt.show()
