@@ -76,7 +76,7 @@ def bias(observed: np.ndarray, estimate: np.ndarray) -> float:
 
   """
   estimate_mean = np.mean(estimate, axis=1, keepdims=True)
-  return np.mean(observed - estimate_mean)**2 
+  return np.mean((observed - estimate_mean)**2 )
 
 
 def variance(estimate: np.ndarray) -> float:

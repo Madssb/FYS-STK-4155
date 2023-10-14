@@ -267,7 +267,7 @@ class LinearRegression2D:
 
   def evaluate_bootstrap(self, degree: int, hyperparameter: float,
                          regression_method: callable,
-                         model_eval_func: callable,
+                         model_eval_funcs: list, # denne er unødvendig nå
                          n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
@@ -295,9 +295,9 @@ class LinearRegression2D:
 
 
     """
-    model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
-    err_msg = "model_eval_func not a permitted Model evaluation callable"
-    assert model_eval_func in model_eval_funcs, err_msg
+    #model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
+    #err_msg = "model_eval_func not a permitted Model evaluation callable"
+    #assert model_eval_funcs.any() in model_eval_funcs, err_msg
     regression_methods = [self.ols, self.ridge, self.lasso]
     err_msg = "regression_method not method in LinearRegression2D."
     assert regression_method in regression_methods, err_msg
@@ -314,14 +314,21 @@ class LinearRegression2D:
         predictions[:,i] = regression_method(features_train_, features_test, seen_,
                                       hyperparameter)
       except TypeError:
-        predictions[:,i] = regression_method(features_train_, features_test, seen)
+        predictions[:,i] = regression_method(features_train_, features_test, seen_)
     
-    try:
-      model_eval = model_eval_func(unseen, predictions)
-    except TypeError:
-      model_eval = model_eval_func(predictions)
+    # Dette fungerte ikke pga ville ikke la meg iterere over funksjonsliste
+    #model_evals = []
+    #for model_eval_func in model_eval_funcs:
+    #  try:
+    #    model_evals.append(model_eval_func(unseen, predictions))
+    #  except TypeError:
+    #    model_evals.append(model_eval_func(predictions))
 
-    return model_eval
+    model_evals = np.array([mean_squared_error_bootstrapped(unseen, predictions),
+                          bias(unseen, predictions),
+                          variance(predictions)])
+
+    return model_evals
     
     #cumulative_model_eval = 0
     #for _ in range(n_bootstraps):
@@ -436,7 +443,7 @@ class LinearRegression2D:
     return eval_mesh
 
   def evaluate_model_mesh_bootstrap(self, regression_method: callable,
-                                    model_eval_func: callable,
+                                    model_eval_funcs: list, # denne er unødvendig nå
                                     n_bootstraps: int) -> np.ndarray:
     """
     Compute specified model evaluation quantity mesh for specified regression
@@ -461,20 +468,21 @@ class LinearRegression2D:
 
     """
     assert regression_method in [self.ols, self.ridge, self.lasso]
-    assert model_eval_func in [mean_squared_error_bootstrapped, bias, variance]
+    #assert model_eval_func in [mean_squared_error_bootstrapped, bias, variance]
     if regression_method == self.ols:
-      eval_mesh = np.empty_like(self.degrees, dtype=float)
+      eval_mesh = np.empty((3, len(self.degrees)), dtype=float)
       for i, degree in enumerate(self.degrees):
-        eval_mesh[i] = self.evaluate_bootstrap(degree, None,
+        eval_mesh[:,i] = self.evaluate_bootstrap(degree, None,
                                                regression_method,
-                                               model_eval_func,
+                                               model_eval_funcs,
                                                n_bootstraps)
       return eval_mesh
+    eval_mesh = np.empty((3, len(self.degrees), len(self.hyperparameters)), dtype=float)
     for i, degree in enumerate(self.degrees):
       for j, hyperparameter in enumerate(self.hyperparameters):
-        eval_mesh[i, j] = self.evaluate_bootstrap(degree, hyperparameter,
+        eval_mesh[:, i, j] = self.evaluate_bootstrap(degree, hyperparameter,
                                                   regression_method,
-                                                  model_eval_func,
+                                                  model_eval_funcs,
                                                   n_bootstraps)
     return eval_mesh
 
