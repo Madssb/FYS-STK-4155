@@ -197,29 +197,35 @@ def bootstrap_analysis():
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + noise).ravel()
+  mock_data = (analytic + 0.1*noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
+  n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
   regression_methods = [instance.ols, instance.ridge]
-  instance.evaluate_model_mesh_bootstrap(instance.ols, mean_squared_error_bootstrapped,50)
-
   
-
-
-
-
-  eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
-  #for eval_func in eval_funcs:
-  #  eval_model_mesh = \
-        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_func,
+  eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
+  eval_func_names = ['MSE', 'bias', 'variance']
+  eval_model_mesh = \
+        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval_funcs unødvendig argument, funka ikke å iterere over funksjoner
                                                100)
-    filename = f"figs/simple_franke_ols_{eval_func.__name__}_100_bootstraps.pdf"
-    ylabel = convert_to_label(eval_func.__name__)
-    fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
-    plt.show()
-    fig.savefig(filename)
+  filename = f"figs/simple_franke_ols_"
+  fig, ax = plt.subplots(figsize=my_figsize())
+  for i, eval_func in enumerate(eval_func_names):
+    ax.plot(d{n_bootstraps}_bootstraps.pdf"egrees, eval_model_mesh[i,:], label=eval_func)
+    filename += f"eval_func_"
+  ax.legend()
+  filename += f"{n_bootstraps}_bootstraps.pdf"
+  plt.show()
+  fig.savefig(filename)
+  
+  #for i, eval_func in enumerate(eval_funcs):
+    #filename = f"figs/simple_franke_ols_{eval_func.__name__}_100_bootstraps.pdf"
+    #ylabel = convert_to_label(eval_func.__name__)
+    #fig, ax = instance.visualize_ols(eval_model_mesh[i,:], ylabel)
+    #plt.show()
+    #fig.savefig(filename)
 
 
 def cross_validation_analysis():
