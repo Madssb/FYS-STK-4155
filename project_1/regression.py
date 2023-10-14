@@ -62,12 +62,8 @@ class LinearRegression2D:
     self.y = y
     self.z = z
     if center:
-      self.x -= np.mean(self.x)
-      self.y -= np.mean(self.y)
       self.z -= np.mean(self.z)
     if normalize:
-      self.x /= np.std(x)
-      self.y /= np.std(y)
       self.z /= np.std(z)
     self.degrees = degrees
     self.hyperparameters = hyperparameters
@@ -109,6 +105,10 @@ class LinearRegression2D:
           for l in range(degree + 1 - k):
             features_xy[row, col_count] = x_**k*y_**l
             col_count += 1
+    if self.center:
+      features_xy -= np.mean(features_xy, axis=0, keepdims=True)
+    if self.normalize:
+      features_xy[:,1:] /= np.std(features_xy[:,1:], axis=0, keepdims=True)
     return features_xy
 
   def ols(self, features_train: np.ndarray, features_test: np.ndarray,
