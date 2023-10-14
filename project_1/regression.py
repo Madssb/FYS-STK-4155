@@ -269,7 +269,7 @@ class LinearRegression2D:
     predicted_model = model.predict(features_test)
     return predicted_model
 
-  def mse_and_r2_ols(self, return_train=True):
+  def mse_and_r2_ols(self, return_train=False):
     """
     Compute mean squared error for ordinary least square regression computed
     models as a function of model complexity.
@@ -357,8 +357,35 @@ class LinearRegression2D:
       plt.show()
     if save == True:
       fig.savefig("../plots/ols_mse.pdf")
+    
+  def visualize_r2_ols(self, show=False, save=True):
+    """
+    Visualize MSE as function of polynomial degree for prediction by OLS
+    regression.
 
-  def visualize_mse_ridge(self, show=False, save=True):
+
+    Parameters
+    ----------
+    show: Bool
+      Shows figure if true.
+    save: Bool
+      saves figure if true.
+
+
+    """
+    if not hasattr(self, 'mses_ols'):
+      self.mse_and_r2_ols()
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.plot(self.degrees, self.r2s_ols, label=r"R$^2$")
+    ax.set_xlabel("Polynomial degree")
+    ax.set_ylabel(r"R$^2$")
+    fig.tight_layout()
+    if show == True:
+      plt.show()
+    if save == True:
+      fig.savefig("../plots/ols_r2.pdf")
+
+  def visualize_mse_ridge(self, show=False, save=True, cbarmin=0, cbarmax=1):
     """
     Visualize MSE as a function of polynomial degree and hyperparameter for
     prediction by Ridge regression.
@@ -378,7 +405,7 @@ class LinearRegression2D:
     fig, ax = plt.subplots(figsize=my_figsize())
     degrees_mesh, hyperparameters_mesh = np.meshgrid(
         self.degrees, self.hyperparameters)
-    levels = np.linspace(self.mses_ridge.min(), self.mses_ridge.max(), 7)
+    levels = np.linspace(cbarmin, cbarmax, 7)
     contour = ax.contourf(
         degrees_mesh, hyperparameters_mesh, self.mses_ridge.T, levels=levels)
     ax.set_yscale("log")
@@ -394,7 +421,7 @@ class LinearRegression2D:
     if save == True:
       fig.savefig("../plots/ridge_mse.pdf")
 
-  def visualize_mse_lasso(self, show=False, save=True):
+  def visualize_mse_lasso(self, show=False, save=True, cbarmin=0, cbarmax=1):
     """
     Visualize MSE as a function of polynomial degree and hyperparameter for
     prediction by Lasso regression.
@@ -414,7 +441,7 @@ class LinearRegression2D:
     fig, ax = plt.subplots(figsize=my_figsize())
     degrees_mesh, hyperparameters_mesh = np.meshgrid(
         self.degrees, self.hyperparameters)
-    levels = np.linspace(self.mses_lasso.min(), self.mses_lasso.max(), 7)
+    levels = np.linspace(cbarmin, cbarmax, 7)
     contour = ax.contourf(
         degrees_mesh, hyperparameters_mesh, self.mses_lasso.T, levels=levels)
     ax.set_yscale("log")

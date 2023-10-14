@@ -5,6 +5,8 @@ import numpy as np
 from utilities import (franke_function, mean_squared_error, r2_score, my_figsize)
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import seaborn as sns
+sns.set_theme()
 
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
@@ -21,28 +23,30 @@ def main():
   
   
   """
-  """
+
   np.random.seed(2023)
   x = np.linspace(0, 1, 20)
   y = np.linspace(0, 1, 20) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 0.1, x_mesh.shape)
-  mock_data = analytic + noise
+  noise = np.random.normal(0, 1, x_mesh.shape)
+  mock_data = analytic + 0.1*noise
   mock_data = mock_data - np.mean(mock_data)
-  mock_data = mock_data / np.std(mock_data)
-  degrees = np.linspace(1,11,11,dtype=int)
-  hyperparameters = np.logspace(-4,4,10)
+  degrees = np.arange(1,6)
+  hyperparameters = np.logspace(-4,0,10)
   linreg_instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters,
                                        center=True)
  
   # Task a
   linreg_instance.visualize_mse_ols(show=False, save=True)
+  linreg_instance.visualize_r2_ols(show=False, save=True)
+  print(linreg_instance.mses_ols)
+  print(linreg_instance.r2s_ols)
   # Task b
-  linreg_instance.visualize_mse_ridge(show=False, save=True)
+  linreg_instance.visualize_mse_ridge(show=False, save=True, cbarmin=0, cbarmax=0.12)
   # Task c
-  linreg_instance.visualize_mse_lasso(show=False, save=True)
+  linreg_instance.visualize_mse_lasso(show=False, save=True, cbarmin=0., cbarmax=0.12)
   # Task e
   linreg_instance.visualize_mse_train_test_ols(show=False, save=True)
 
@@ -68,7 +72,7 @@ def main():
   #plt.show()
   
   # Task f
-  k = np.linspace(5, 10, 6, dtype=int)
+  k = np.arange(5, 11)
   mses_cv = np.empty((len(k), len(degrees)))
   fig, ax = plt.subplots(figsize=my_figsize())
   for i in range(len(k)):
@@ -76,11 +80,16 @@ def main():
       mse, r2 = linreg_instance.cross_validation(k=k[i], 
         degree=degrees[j], method='ols')
       mses_cv[i,j] = mse
-    ax.plot(degrees, mses_cv[i,:],label=str(k[i])+'-fold')
+    ax.plot(degrees, mses_cv[i,:],label='k='+str(k[i]))
   #ax.plot(degrees, mses, '--', label='Bootstrap MSE')
   #ax.plot(degrees, biases, '--', label='Bias')
   #ax.plot(degrees, variances, '--', label='Variance')
-  ax.legend(ncols=2)
+  box = ax.get_position()
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+  # Put a legend to the right of the current axis
+  ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+  #ax.legend(ncols=2)
   ax.set_xlabel("Polynomial degree")
   ax.set_ylabel("MSE")
   fig.tight_layout()
@@ -97,7 +106,7 @@ def main():
   x_shift = 1000
   z = terrain1[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
   z = z[::reduce_factor, ::reduce_factor]
-  """
+
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   from matplotlib import cm
@@ -125,7 +134,7 @@ def main():
 
   fig.savefig("../plots/terrain_visualization.pdf")
   plt.show()
-  """
+
   x = np.arange(np.shape(z)[0])
   y = np.arange(np.shape(z)[1])
   z = z - np.mean(z)
@@ -135,7 +144,7 @@ def main():
   linreg_instance = LinearRegression2D(x, y, z,
                                        degrees, hyperparameters, 
                                        center=True, standardize=True)
-  """
+
   #linreg_instance.visualize_mse_ols(show=False, save=True)
   k = np.linspace(5, 10, 6, dtype=int)
   mses_cv = np.empty((len(k), len(degrees)))
@@ -150,7 +159,7 @@ def main():
   fig.tight_layout()
   fig.savefig('../plots/terrain_cross_val_ols')
   plt.show()
-  """
+
   #linreg_instance.visualize_mse_ridge(show=False, save=True)
   k = 5
   mses_cv = np.empty((len(degrees), len(hyperparameters)))
@@ -200,7 +209,7 @@ def main():
   fig.tight_layout()
   plt.show()
   fig.savefig("../plots/terrain_lasso_mse.pdf")                                   
-
+"""
 if __name__ == '__main__':
   #ols_franke_function()temporary_name
   #ridge_franke_function()
