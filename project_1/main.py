@@ -174,11 +174,11 @@ def franke_simple_mse_and_r2_analysis():
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   eval_funcs = [mean_squared_error, r2_score]
   for regression_method in regression_methods:
-    filename = f"figs/simple_franke_{regression_method.__name__}"
     for eval_func in eval_funcs:
       eval_model_mesh = \
           instance.evaluate_model_mesh(regression_method, eval_func)
-      filename += f"{eval_func.__name__}.pdf"
+      filename = f"figs/simple_franke_{regression_method.__name__}"
+      filename += f"_{eval_func.__name__}.pdf"
       ylabel = convert_to_label(eval_func.__name__)
       fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
       fig.savefig(filename)
@@ -200,7 +200,7 @@ def bootstrap_analysis():
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + 0.1*noise).ravel()
-  degrees = np.arange(1, 15, dtype=int)
+  degrees = np.arange(1, 12, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
@@ -218,7 +218,7 @@ def bootstrap_analysis():
     ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
     filename += f"{eval_func}_"
   ax.legend()
-  ax.set_xlabel("Polynomial degrees")
+  ax.set_xlabel("Polynomial degree")
   ax.set_ylabel("Error")
   fig.tight_layout()
   filename += f"{n_bootstraps}_bootstraps.pdf"
@@ -357,8 +357,8 @@ def total_mses_terrain():
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
-  #franke_simple_mse_and_r2_analysis()
-  bootstrap_analysis()
+  franke_simple_mse_and_r2_analysis()
+  #bootstrap_analysis()
   # cross_validation_analysis()
   #franke()
   #terrain()
