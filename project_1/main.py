@@ -1,23 +1,37 @@
 """
 Solve project here
 """
+import matplotlib.pylab as pylab
+import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
-from utilities import (franke_function, convert_to_label, my_figsize)
+import warnings
+
 from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
                                       variance)
-import pandas as pd
+from utilities import (franke_function, convert_to_label, my_figsize)
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from matplotlib.ticker import FuncFormatter
+from matplotlib import cm
+from sklearn.model_selection import train_test_split
+from sklearn.exceptions import ConvergenceWarning
+from mpl_toolkits.mplot3d import Axes3D
+from regression import LinearRegression2D
 from PIL import Image
 
-from sklearn.model_selection import train_test_split
+# formatting plots and figures
+# plt.style.use('ggplot')
+# plt.rcParams.update({'font.size': 14})
+# plt.rcParams.update({'axes.grid': True})
+# plt.rc('legend', frameon=False)
+# params = {'legend.fontsize': 25,
+# 			'figure.figsize': (12, 9),
+# 			'axes.labelsize': 25,
+# 			'axes.titlesize': 25,
+# 			'xtick.labelsize': 'x-large',
+# 			'ytick.labelsize': 'x-large'}
+# pylab.rcParams.update(params)
 
-from matplotlib.ticker import FuncFormatter
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
-from regression import LinearRegression2D
-import warnings
-from sklearn.exceptions import ConvergenceWarning
 
 
 def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
@@ -59,51 +73,76 @@ def simple_degree_analysis():
   without synthetic noise.
   """
   np.random.seed(2023)
-  n_pts = 400
-  xy_stepsize = 1/np.sqrt(n_pts)
-  x = np.arange(0, 1, 0.05)
-  y = np.arange(0, 1, 0.05) 
+  points = 40
+  x = np.arange(0, 1, 1/points)
+  y = np.arange(0, 1, 1/points) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)
+  noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
   instance = LinearRegression2D(x, y, mock_data)
   fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  ax.plot_surface(x_mesh, y_mesh,mock_data.reshape(x_mesh.shape),
-                  cmap='viridis')
-  ax.set_xlabel('X')
-  ax.set_ylabel('Y')
-  ax.set_zlabel('Z')
-  fig.savefig("figs/franke_function_w_noise.pdf")
+  ax = fig.add_subplot(projection='3d')
+  surface = ax.plot_surface(x_mesh, y_mesh, analytic, cmap=plt.cm.coolwarm)
+  fig.colorbar(surface, shrink=0.5, aspect=5)
+  ax.set_xlabel('x')
+  ax.set_ylabel('y')
+  ax.set_zlabel('z')
+  print('analytic',np.min(analytic), np.max(analytic))
+  # plt.show()
+  fig.savefig("figs/FrankeFunction/franke_function_wo_noise.pdf")
   fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  ax.plot_surface(x_mesh, y_mesh,analytic, cmap='viridis')
-  ax.set_xlabel('X')
-  ax.set_ylabel('Y')
-  ax.set_zlabel('Z')
-  fig.savefig("figs/franke_function_wo_noise.pdf")
+  ax = fig.add_subplot(projection='3d')
+  # ax.view_init(elev=, azim=)
+  surface = ax.plot_surface(x_mesh, y_mesh, mock_data.reshape(x_mesh.shape),
+                  cmap=plt.cm.coolwarm)
+  # fig.colorbar(surface, shrink=0.5, aspect=5)
+  # ax.set_labelticksize(15)
+  ax.tick_params(axis='both', which='major', labelsize=20)
+  ax.set_xlabel('x')
+  ax.set_ylabel('y')
+  ax.set_zlabel('z')
+  # plt.tight_layout()
+  plt.show()
+  fig.savefig("figs/FrankeFunction/franke_function_w_noise.pdf")
   features = instance.features_polynomial_xy(5)
-  predicted = instance.ols(features, features, mock_data,
-                            return_parameters=True)
+  features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
+  beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
+  predicted = features @ beta
   fig = plt.figure()
   ax = fig.add_subplot(111, projection='3d')
-  ax.plot_surface(x_mesh, y_mesh,predicted.reshape(x_mesh.shape),
-                  cmap='viridis')
-  ax.set_xlabel('X')
-  ax.set_ylabel('Y')
-  ax.set_zlabel('Z')
-  fig.savefig("figs/franke_function_deg_5_predicted.pdf")
-  fig, ax = plt.subplots(figsize=my_figsize())
+  ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
+                  cmap=pl.cm.coolwarm)
+  ax.set_xlabel('x')
+  ax.set_ylabel('y')
+  ax.set_zlabel('z')
+  # plt.show()
+  fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf")
+
+  betas = []
+  vars = []
+  ax = plt.axes()
+  color = plt.cm.viridis(np.linspace(0.9, 0,11))
+  ax.set_prop_cycle(plt.cycler('color', color))
   for degree in degrees:
     features = instance.features_polynomial_xy(degree)
-    parameters = instance.ols(features, features, mock_data,
+    features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
+    parameters, predicted = instance.ols(features_train, features_test, seen,
                              return_parameters=True)
-    ax.plot(parameters, label=f"deg {degree}")
-  ax.set_ylabel("")
-  ax.set_xlabel("")
+    betas.append(parameters)
+    vars.append(variance(predicted))
+    # vars.append(np.mean( np.var(predicted) ))
+  for i, beta in enumerate(betas):
+    beta_indexes = np.arange(1, len(beta)+1)
+    plt.errorbar(beta_indexes, beta, yerr=np.sqrt(vars[i]), marker='o', linestyle='--', capsize=4, label='d = %d' % (1 + i)) #  alpha=(1/(1 + i )*10)
+  ax.set_xticks([i for i in range(1, len(betas[-1])+1)])
+  plt.xlabel(r'$\beta$ coefficient number')
+  plt.ylabel(r'$\beta$ coefficient value')
+  plt.legend(ncol=3, loc='lower right', fontsize='x-large', columnspacing=0.2, frameon=True, framealpha=0.2, shadow=True)
+  plt.tight_layout()
   plt.show()
+  plt.savefig('figs/FrankeFunction/franke_betas.pdf')
 
 
 

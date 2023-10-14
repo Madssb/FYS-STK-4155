@@ -138,7 +138,7 @@ class LinearRegression2D:
     ) @ np.transpose(features_train) @ z_train
     predicted = features_test @ optimal_parameters
     if return_parameters:
-      return optimal_parameters
+      return optimal_parameters, predicted
     return predicted
 
   def ridge(self, features_train: np.ndarray,
