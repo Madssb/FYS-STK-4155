@@ -15,7 +15,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from regression import LinearRegression2D
 
-
+plt.style.use('ggplot')
 def main():
   """
   Generate random input, and Franke function data, compute regression
@@ -25,14 +25,14 @@ def main():
   """
 
   np.random.seed(2023)
-  x = np.linspace(0, 1, 40)
-  y = np.linspace(0, 1, 40) 
+  x = np.linspace(0, 1, 20)
+  y = np.linspace(0, 1, 20) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = analytic + 0.1*noise
   mock_data = mock_data - np.mean(mock_data)
-  degrees = np.arange(1,6)
+  degrees = np.arange(1,16)
   hyperparameters = np.logspace(-4,0,10)
   linreg_instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters,
@@ -67,6 +67,7 @@ def main():
   ax.set_xlabel("Polynomial degree")
   ax.set_ylabel("Error")
   ax.legend()
+  ax.set_xticks(degrees[::2])
   fig.tight_layout()
   fig.savefig('../plots/bias_variance.pdf')
   #plt.show()

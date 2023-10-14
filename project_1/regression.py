@@ -509,6 +509,7 @@ class LinearRegression2D:
     ax.legend()
     ax.set_xlabel("Polynomial degree")
     ax.set_ylabel("MSE")
+    ax.set_xticks(self.degrees[::2])
     fig.tight_layout()
     if show == True:
       plt.show()
