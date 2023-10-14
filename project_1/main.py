@@ -27,13 +27,17 @@ from PIL import Image
 # plt.rcParams.update({'font.size': 14})
 # plt.rcParams.update({'axes.grid': True})
 # plt.rc('legend', frameon=False)
-# params = {'legend.fontsize': 25,
-# 			'figure.figsize': (12, 9),
-# 			'axes.labelsize': 25,
-# 			'axes.titlesize': 25,
-# 			'xtick.labelsize': 'x-large',
-# 			'ytick.labelsize': 'x-large'}
-# pylab.rcParams.update(params)
+params = {'legend.fontsize': 25,
+			'figure.figsize': (12, 9),
+			'axes.labelsize': 25,
+			'axes.titlesize': 25,
+			'xtick.labelsize': 'x-large',
+			'ytick.labelsize': 'x-large',
+      'font.size': 14,
+      'axes.grid': True,
+      'legend.frameon': False,}
+
+pylab.rcParams.update(params)
 
 
 
@@ -84,47 +88,59 @@ def simple_degree_analysis():
   noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
   mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
-  instance = LinearRegression2D(x, y, mock_data)
+  # plot of analytic franke
+  plt.style.use('default')
   fig = plt.figure()
   ax = fig.add_subplot(projection='3d')
-  surface = ax.plot_surface(x_mesh, y_mesh, analytic, cmap=plt.cm.coolwarm)
-  fig.colorbar(surface, shrink=0.5, aspect=5)
+  surface = ax.plot_surface(x_mesh, y_mesh, analytic, cmap='viridis')
+  fig.colorbar(surface, shrink=0.6)#aspect=20)#, shrink=0.5, aspect=5)
+  ax.view_init(elev=15, azim=-7)
+  ax.set_zlim(-0.10, 1.40)
   ax.set_xlabel('x')
   ax.set_ylabel('y')
   ax.set_zlabel('z')
-  print('analytic',np.min(analytic), np.max(analytic))
+  plt.tight_layout()
   # plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_wo_noise.pdf")
+  fig.savefig("figs/FrankeFunction/franke_function_wo_noise.pdf", bbox_inches='tight')
+  # plot of franke with noise
   fig = plt.figure()
   ax = fig.add_subplot(projection='3d')
-  # ax.view_init(elev=, azim=)
   surface = ax.plot_surface(x_mesh, y_mesh, mock_data.reshape(x_mesh.shape),
-                  cmap=plt.cm.coolwarm)
-  # fig.colorbar(surface, shrink=0.5, aspect=5)
-  # ax.set_labelticksize(15)
-  ax.tick_params(axis='both', which='major', labelsize=20)
+                  cmap='viridis')
+  fig.colorbar(surface, shrink=0.6)
+  # ax.tick_params(axis='both', which='major', labelsize=20)
+  ax.view_init(elev=15, azim=-7)
+  ax.set_zlim(-0.10, 1.40)
   ax.set_xlabel('x')
   ax.set_ylabel('y')
   ax.set_zlabel('z')
-  # plt.tight_layout()
-  plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_w_noise.pdf")
+  plt.tight_layout()
+  # plt.show()
+  fig.savefig("figs/FrankeFunction/franke_function_w_noise.pdf", bbox_inches='tight')
+  # # plot of 5th degree estimation of franke
+  instance = LinearRegression2D(x, y, mock_data)
   features = instance.features_polynomial_xy(5)
   features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
   beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
   predicted = features @ beta
   fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
+  ax = fig.add_subplot(projection='3d')
   ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
-                  cmap=plt.cm.coolwarm)
+                  cmap='viridis')
+  fig.colorbar(surface, shrink=0.6, ax=ax)
+  ax.view_init(elev=15, azim=-7)
   ax.set_xlabel('x')
   ax.set_ylabel('y')
   ax.set_zlabel('z')
+  plt.tight_layout()#rect=(0.2, 0, 1, 1))
   # plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf")
-
+  fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf", bbox_inches='tight')
+  #  plot of betas of model estimation for degree 1-5
+  plt.style.use('ggplot')
+  pylab.rcParams.update(params)
   betas = []
   vars = []
+  fig = plt.figure()
   ax = plt.axes()
   color = plt.cm.viridis(np.linspace(0.9, 0,11))
   ax.set_prop_cycle(plt.cycler('color', color))
@@ -134,8 +150,8 @@ def simple_degree_analysis():
     parameters, predicted = instance.ols(features_train, features_test, seen,
                              return_parameters=True)
     betas.append(parameters)
-    vars.append(variance(predicted))
-    # vars.append(np.mean( np.var(predicted) ))
+    # vars.append(variance(predicted))
+    vars.append(np.mean( np.var(predicted) ))
   for i, beta in enumerate(betas):
     beta_indexes = np.arange(1, len(beta)+1)
     plt.errorbar(beta_indexes, beta, yerr=np.sqrt(vars[i]), marker='o', linestyle='--', capsize=4, label='d = %d' % (1 + i)) #  alpha=(1/(1 + i )*10)
@@ -144,7 +160,7 @@ def simple_degree_analysis():
   plt.ylabel(r'$\beta$ coefficient value')
   plt.legend(ncol=3, loc='lower right', fontsize='x-large', columnspacing=0.2, frameon=True, framealpha=0.2, shadow=True)
   plt.tight_layout()
-  plt.show()
+  # plt.show()
   plt.savefig('figs/FrankeFunction/franke_betas.pdf')
 
 
@@ -356,8 +372,8 @@ def total_mses_terrain():
 
 if __name__ == '__main__':
   # warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  #simple_degree_analysis()
-  franke_simple_mse_and_r2_analysis()
+  simple_degree_analysis()
+  #franke_simple_mse_and_r2_analysis()
   #bootstrap_analysis()
   # cross_validation_analysis()
   #franke()
