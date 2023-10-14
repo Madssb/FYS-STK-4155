@@ -179,8 +179,8 @@ def franke_simple_mse_and_r2_analysis():
   np.random.seed(2023)
   #x = np.arange(0, 1, 0.05)
   #y = np.arange(0, 1, 0.05)
-  x = np.linspace(0, 1, 20)
-  y = np.linspace(0, 1, 20) 
+  x = np.linspace(0, 1, 40)
+  y = np.linspace(0, 1, 40) 
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
@@ -203,6 +203,7 @@ def franke_simple_mse_and_r2_analysis():
         fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
       else:
         fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
+      ax.set_xticks(degrees)
       fig.savefig(filename)
 
 
@@ -224,12 +225,12 @@ def bootstrap_analysis():
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)
   mock_data = (analytic + 0.1*noise).ravel()
-  degrees = np.arange(1, 12, dtype=int)
+  degrees = np.arange(1, 14, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
-  instance.ols(features_train= self.features_train, features_test=self.features_train)                                       
+  
   regression_methods = [instance.ols, instance.ridge]
   
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
