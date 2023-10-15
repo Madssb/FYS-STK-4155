@@ -219,7 +219,7 @@ def franke_simple_mse_and_r2_analysis():
         fig.savefig(filename)
 
 
-def bootstrap_analysis():
+def BVT_bootstrap_analysis():
   """
   Compute predicteds for franke function mesh with synthetic noise, with OLS
   for complexities spanning one to five degrees, and hyperparameter logspace of
@@ -229,6 +229,8 @@ def bootstrap_analysis():
 
   """
   np.random.seed(2023)
+  pylab.rcParams.update(params)
+  n_bootstraps = 100
   points = 40 
   x = np.arange(0, 1, 1/points)
   y = np.arange(0, 1, 1/points)
@@ -236,13 +238,11 @@ def bootstrap_analysis():
   analytic = franke_function(x_mesh, y_mesh)
   noise = np.random.normal(0, 1, x_mesh.shape)*0.1
   mock_data = (analytic + noise).ravel()
-  degrees = np.arange(1, 20, dtype=int)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
-  n_bootstraps = 100
+  degrees = np.arange(1, 14, dtype=int)
   instance = LinearRegression2D(x, y, mock_data,
-                                       degrees, hyperparameters)
+                                       degrees)
   
-  regression_methods = [instance.ols, instance.ridge]
+  regression_methods = [instance.ols]#, instance.ridge, instance.lasso]
   
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
   eval_func_names = ['MSE', 'bias', 'variance']
@@ -250,25 +250,18 @@ def bootstrap_analysis():
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
                                                n_bootstraps)
   filename = f"figs/FrankeFunction/bootstrap/simple_franke_ols_"
-  fig, ax = plt.subplots(figsize=my_figsize())
+  fig, ax = plt.subplots()
   for i, eval_func in enumerate(eval_func_names):
-    ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
+    ax.plot(degrees, eval_model_mesh[i, :], label=eval_func)
     filename += f"{eval_func}_"
   ax.legend()
   ax.set_xlabel("Polynomial degree")
   ax.set_ylabel("Error")
   ax.set_xticks(degrees[::2])
   fig.tight_layout()
-  filename += f"{n_bootstraps}_bootstraps.pdf"
-  plt.show()
+  filename += f"deg_{np.max(degrees)}_{points}points_{n_bootstraps}_bootstraps.pdf"
   fig.savefig(filename)
-  
-  #for i, eval_func in enumerate(eval_funcs):
-    #filename = f"figs/simple_franke_ols_{eval_func.__name__}_100_bootstraps.pdf"
-    #ylabel = convert_to_label(eval_func.__name__)
-    #fig, ax = instance.visualize_ols(eval_model_mesh[i,:], ylabel)
-    #plt.show()
-    #fig.savefig(filename)
+  plt.show()
 
 
 def cross_validation_analysis():
@@ -468,7 +461,7 @@ if __name__ == '__main__':
   warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
   # franke_simple_mse_and_r2_analysis()
-  bootstrap_analysis()
+  BVT_bootstrap_analysis()
   #cross_validation_analysis()
   #franke()
   # terrain()
