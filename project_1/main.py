@@ -88,11 +88,15 @@ def simple_degree_analysis(terrain=False):
     x_shift = 1000
     data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
     data = data[::reduce_factor, ::reduce_factor]
+    # print(data.shape)
+    # exit()
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
     degrees = np.arange(1, 6)
     instance = LinearRegression2D(x, y, data, degrees)
+    # instance.plot_terrain_3D()
+    # exit()
   else:
     points = 40
     x = np.arange(0, 1, 1/points)
