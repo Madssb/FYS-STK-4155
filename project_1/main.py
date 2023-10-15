@@ -27,15 +27,15 @@ plt.style.use('ggplot')
 plt.rcParams.update({'font.size': 10})
 plt.rcParams.update({'axes.grid': True})
 plt.rc('legend', frameon=False)
-#params = {'legend.fontsize': 25,
-#			'figure.figsize': (12, 9),
-#			'axes.labelsize': 25,
-#			'axes.titlesize': 25,
-#			'xtick.labelsize': 'x-large',
-#			'ytick.labelsize': 'x-large',
-#      'font.size': 14,
-#      'axes.grid': True,
-#      'legend.frameon': False,}
+params = {'legend.fontsize': 25,
+			'figure.figsize': (12, 9),
+			'axes.labelsize': 25,
+			'axes.titlesize': 25,
+			'xtick.labelsize': 'x-large',
+			'ytick.labelsize': 'x-large',
+     'font.size': 14,
+     'axes.grid': True,
+     'legend.frameon': False,}
 
 #pylab.rcParams.update(params)
 
@@ -230,7 +230,7 @@ def bootstrap_analysis():
   n_bootstraps = 100
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters)
-  instance.ols(features_train= self.features_train, features_test=self.features_train)                                       
+  # instance.ols(features_train= self.features_train, features_test=self.features_train)                                       
   regression_methods = [instance.ols, instance.ridge]
   
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
@@ -304,22 +304,79 @@ def terrain():
   """
   TBA
   """
-  img = Image.open("data/SRTM_data_Norway_1.tif")
-  data = np.array(img)
-  n_pts = 1000
-  ds_factor = int(np.round(np.sqrt((data.shape[0]*data.shape[1])/n_pts)))
-  data_downsampled = data[::ds_factor,::ds_factor]
-  x = np.linspace(0,1,data_downsampled.shape[0])
-  y = np.linspace(0,1,data_downsampled.shape[1])
-  z = data_downsampled.ravel().astype(np.float64)
-  degrees = np.arange(1,16)
-  hyperparameters = np.logspace(-4,0,10, dtype=float)
+  np.random.seed(2023)
+  data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
+  print(data.shape)
+  x_pos, y_pos = 500, 500
+  reduce_factor = 30
+  y_shift = 1000
+  x_shift = 1000
+  # z = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+  z = data
+  z = z[::reduce_factor, ::reduce_factor]
+  # n_pts = 2000
+  # ds_factor = int(np.round(np.sqrt((data.shape[0]*data.shape[1])/n_pts)))
+  # z = data[::ds_factor,::ds_factor]
+  # # print(data_downsampled.shape)
+  x = np.linspace(0,1,z.shape[0])
+  y = np.linspace(0,1,z.shape[1])
+  # print(z.shape)
+  z = z.ravel().astype(np.float64)
+  # print(len(z))
+  # exit()
+  degrees = np.arange(1,25)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  extent = [degrees[0], degrees[-1], np.log10(hyperparameters[0]), np.log10(hyperparameters[-1])]
   instance = LinearRegression2D(x, y, z, degrees, hyperparameters)
-  print("made it here")
-  mse_crossval = instance.evaluate_model_mesh(
-    instance.ols, mean_squared_error, instance.evaluate_predicted_crossval)
-  fig, ax = instance.visualize_ols(mse_crossval, "MSE")
-  make_figs_for_everything(instance, z, "terrain")
+  # instance.plot_terrain_3D()
+  # exit()
+  # print("made it here")
+  # mse_crossval = instance.evaluate_model_mesh(
+  #   instance.ols, mean_squared_error, instance.evaluate_crossval)
+  # fig, ax = instance.visualize_ols(mse_crossval, "MSE")
+  # make_figs_for_everything(instance, z, "terrain")
+  # degrees = np.arange(1, 6, dtype=int)
+  # hyperparameters = np.logspace(-4,4,10, dtype=float)
+  # Cross val heat maps
+  # instance = LinearRegression2D(x, y, z,
+                                      #  degrees, hyperparameters) 
+  k_folds = np.arange(10,11, dtype=int)
+  # degrees_mesh, hyperparameters_mesh = np.meshgrid(degrees, hyperparameters)
+  # mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
+  features = instance.features_polynomial_xy(15)
+  # features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
+  x_mesh, y_mesh = np.meshgrid(x, y)
+  predicted = instance.ridge(features, features, z, hyperparameter=10e-4)
+  # fig = plt.figure()
+  # ax = fig.add_subplot(projection='3d')
+  fig, ax = plt.subplots()
+  # check predicted!
+  z_plot = np.concatenate(predicted)
+  if len(y) > len(x):
+    z_plot = np.array_split(z, len(y))
+  elif len(y) < len(x) or len(y) == len(x):
+    z_plot = np.array_split(z, len(x))
+  ax.imshow(z_plot, cmap='viridis')
+  # ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape))
+  instance.plot_terrain()
+  plt.show()
+  exit()
+  regression_methods = [instance.ridge, instance.lasso]
+  for regression_method in regression_methods:
+    fig, ax = plt.subplots()
+    for i, k_fold in enumerate(k_folds):
+      print(f'now doing: {regression_method.__name__} with kfold:{k_fold}')
+      mses = instance.evaluate_model_mesh_cross_validation(regression_method,
+                                                           mean_squared_error,
+                                                           k_fold)
+      plt.contourf(mses.T, extent=extent, levels=30)
+      plt.title(f'{regression_method.__name__} with kfold:{k_fold}')
+      plt.xlabel("Polynomial degree")
+      plt.ylabel(r"Penalty parameter [log$_{10}$]")
+      cbar = plt.colorbar(pad=0.01)
+      cbar.set_label('MSE score')
+      # plt.legend()
+  plt.show()
 
 
 def total_mses_franke():
@@ -364,6 +421,7 @@ def total_mses_terrain():
   n_pts = 1000
   ds_factor = int(np.round(np.sqrt((data.shape[0]*data.shape[1])/n_pts)))
   data_downsampled = data[::ds_factor,::ds_factor]
+  print(data_downsampled.shape)
   x = np.linspace(0,1,data_downsampled.shape[0])
   y = np.linspace(0,1,data_downsampled.shape[1])
   z = data_downsampled.ravel().astype(np.float64)
@@ -383,12 +441,12 @@ def total_mses_terrain():
       print(f"mean mse {regression_method.__name__}: {mean_mse:.4g}")
 
 if __name__ == '__main__':
-  # warnings.filterwarnings('ignore', category=ConvergenceWarning)
+  warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
-  franke_simple_mse_and_r2_analysis()
-  #bootstrap_analysis()
-  #cross_validation_analysis()
+  # franke_simple_mse_and_r2_analysis()
+  # bootstrap_analysis()
+  # cross_validation_analysis()
   #franke()
-  #terrain()
+  terrain()
   #total_mses_franke()
   #total_mses_terrain()

@@ -23,7 +23,7 @@ class LinearRegression2D:
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               test_size=0.2, center=True, normalize=False):
+               test_size=0.2, center=True, normalize=True):
     """
     Instantiate LinearRegression2D object.
 
