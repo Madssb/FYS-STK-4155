@@ -177,34 +177,46 @@ def franke_simple_mse_and_r2_analysis():
 
   """
   np.random.seed(2023)
-  #x = np.arange(0, 1, 0.05)
-  #y = np.arange(0, 1, 0.05)
-  x = np.linspace(0, 1, 40)
-  y = np.linspace(0, 1, 40) 
+  points = 40
+  x = np.arange(0, 1, 1/points)
+  y = np.arange(0, 1, 1/points)  
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + 0.1*noise).ravel()
+  noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+  mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
-  hyperparameters = np.logspace(-4,0,5, dtype=float)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, mock_data,
                                        degrees, hyperparameters,
-                                       center=True, normalize=False)
+                                       center=True, normalize=True)
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
   eval_funcs = [mean_squared_error, r2_score]
+  pylab.rcParams.update(params)
   for regression_method in regression_methods:
-    for eval_func in eval_funcs:
-      eval_model_mesh = \
-          instance.evaluate_model_mesh(regression_method, eval_func)
-      filename = f"figs/simple_franke_{regression_method.__name__}"
-      filename += f"_{eval_func.__name__}.pdf"
-      ylabel = convert_to_label(eval_func.__name__)
-      if regression_method == instance.ols:
-        fig, ax = instance.visualize_ols(eval_model_mesh, ylabel)
-      else:
-        fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
-      ax.set_xticks(degrees)
+    if regression_method == instance.ols:
+      fig, ax = plt.subplots(nrows=2, sharex=True)
+      ax[0].set_xticks(degrees)
+      plt.xlabel("Polynomial degree")
+      for i, eval_func in enumerate(eval_funcs):
+        eval_model_mesh = \
+            instance.evaluate_model_mesh(regression_method, eval_func)
+        ylabel = convert_to_label(eval_func.__name__)
+        ax[i].plot(degrees, eval_model_mesh, color=f'C{i}')
+        filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
+        filename += f"_{eval_func.__name__}.pdf"
+        ax[i].set_ylabel(ylabel)
+      plt.tight_layout()
       fig.savefig(filename)
+    else:
+      for eval_func in eval_funcs:
+        eval_model_mesh = \
+            instance.evaluate_model_mesh(regression_method, eval_func)
+        filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
+        filename += f"_{eval_func.__name__}.pdf"
+        ylabel = convert_to_label(eval_func.__name__)
+        fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
+        ax.set_xticks(degrees)
+        fig.savefig(filename)
 
 
 def bootstrap_analysis():
@@ -217,14 +229,13 @@ def bootstrap_analysis():
 
   """
   np.random.seed(2023)
-  #x = np.arange(0, 1, 0.05)
-  #y = np.arange(0, 1, 0.05) 
-  x = np.linspace(0, 1, 40)
-  y = np.linspace(0, 1, 40)
+  points = 40 
+  x = np.arange(0, 1, 1/points)
+  y = np.arange(0, 1, 1/points)
   x_mesh, y_mesh = np.meshgrid(x, y)
   analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + 0.1*noise).ravel()
+  noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+  mock_data = (analytic + noise).ravel()
   degrees = np.arange(1, 20, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
   n_bootstraps = 100
@@ -238,7 +249,7 @@ def bootstrap_analysis():
   eval_model_mesh = \
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
                                                n_bootstraps)
-  filename = f"figs/simple_franke_ols_"
+  filename = f"figs/FrankeFunction/bootstrap/simple_franke_ols_"
   fig, ax = plt.subplots(figsize=my_figsize())
   for i, eval_func in enumerate(eval_func_names):
     ax.plot(degrees, eval_model_mesh[i,:], label=eval_func)
@@ -456,10 +467,10 @@ def total_mses_terrain():
 if __name__ == '__main__':
   warnings.filterwarnings('ignore', category=ConvergenceWarning)
   #simple_degree_analysis()
-  #franke_simple_mse_and_r2_analysis()
+  # franke_simple_mse_and_r2_analysis()
   bootstrap_analysis()
   #cross_validation_analysis()
   #franke()
-  terrain()
+  # terrain()
   #total_mses_franke()
   #total_mses_terrain()

@@ -72,7 +72,7 @@ def convert_to_label(metric_name):
     if mse_match:
         metric_name = re.sub(r"mean_squared_error", "MSE", metric_name)
     if r2_score_match:
-        metric_name = re.sub(r"r2_score", "R2-score", metric_name)
+        metric_name = re.sub(r"r2_score", r"R$^2$ score", metric_name)
     if ols_match:
        metric_name = re.sub(r"ols", "OLS", metric_name)
     if ridge_match:

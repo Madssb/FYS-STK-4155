@@ -545,7 +545,7 @@ class LinearRegression2D:
 
 
     """
-    fig, ax = plt.subplots(figsize=my_figsize())
+    fig, ax = plt.subplots()
     ax.plot(self.degrees, quantity, label=label)
     ax.set_xlabel("Polynomial degree")
     if ylabel:
@@ -571,11 +571,12 @@ class LinearRegression2D:
       
     """
     assert len(quantity.shape) == 2, f"{len(quantity.shape)=} is not 2."
-    fig, ax = plt.subplots(figsize=my_figsize())
+    fig, ax = plt.subplots()
     degrees_mesh, hyperparameters_mesh = np.meshgrid(
         self.degrees, self.hyperparameters)
+    n_levels = len(self.degrees)*len(self.hyperparameters)
     try:
-      levels = np.linspace(quantity.min(), quantity.max(), 7)
+      levels = np.linspace(quantity.min(), quantity.max(), 30)
       contour = ax.contourf(
           degrees_mesh, hyperparameters_mesh, quantity.T, levels=levels)
     except ValueError:
@@ -583,7 +584,7 @@ class LinearRegression2D:
           degrees_mesh, hyperparameters_mesh, quantity.T)
     ax.set_yscale("log")
     ax.set_xlabel("Polynomial degree")
-    ax.set_ylabel(r"hyperparameter $\lambda$")
+    ax.set_ylabel(r"Penalty parameter [log$_{10}$]")
     ax.grid()
     def format_func(x, _): return f"{x:.2f}"
     cbar = plt.colorbar(contour, format=format_func)
