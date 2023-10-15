@@ -72,7 +72,7 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
 
 
 
-def simple_degree_analysis():
+def simple_degree_analysis(terrain=False):
   """
   Compute predicted for franke function mesh with synthetic noise, with ols and
   complexity ranging from 1 degree to 5 degree order x and y polynomial.
@@ -80,61 +80,75 @@ def simple_degree_analysis():
   without synthetic noise.
   """
   np.random.seed(2023)
-  points = 40
-  x = np.arange(0, 1, 1/points)
-  y = np.arange(0, 1, 1/points) 
-  x_mesh, y_mesh = np.meshgrid(x, y)
-  analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
-  mock_data = (analytic + noise).ravel()
-  degrees = np.arange(1, 6, dtype=int)
-  # plot of analytic franke
-  plt.style.use('default')
-  fig = plt.figure()
-  ax = fig.add_subplot(projection='3d')
-  surface = ax.plot_surface(x_mesh, y_mesh, analytic, cmap='viridis')
-  fig.colorbar(surface, shrink=0.6)#aspect=20)#, shrink=0.5, aspect=5)
-  ax.view_init(elev=15, azim=-7)
-  ax.set_zlim(-0.10, 1.40)
-  ax.set_xlabel('x')
-  ax.set_ylabel('y')
-  ax.set_zlabel('z')
-  plt.tight_layout()
-  # plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_wo_noise.pdf", bbox_inches='tight')
-  # plot of franke with noise
-  fig = plt.figure()
-  ax = fig.add_subplot(projection='3d')
-  surface = ax.plot_surface(x_mesh, y_mesh, mock_data.reshape(x_mesh.shape),
-                  cmap='viridis')
-  fig.colorbar(surface, shrink=0.6)
-  # ax.tick_params(axis='both', which='major', labelsize=20)
-  ax.view_init(elev=15, azim=-7)
-  ax.set_zlim(-0.10, 1.40)
-  ax.set_xlabel('x')
-  ax.set_ylabel('y')
-  ax.set_zlabel('z')
-  plt.tight_layout()
-  # plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_w_noise.pdf", bbox_inches='tight')
-  # # plot of 5th degree estimation of franke
-  instance = LinearRegression2D(x, y, mock_data)
-  features = instance.features_polynomial_xy(5)
-  features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
-  beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
-  predicted = features @ beta
-  fig = plt.figure()
-  ax = fig.add_subplot(projection='3d')
-  ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
-                  cmap='viridis')
-  fig.colorbar(surface, shrink=0.6, ax=ax)
-  ax.view_init(elev=15, azim=-7)
-  ax.set_xlabel('x')
-  ax.set_ylabel('y')
-  ax.set_zlabel('z')
-  plt.tight_layout()#rect=(0.2, 0, 1, 1))
-  # plt.show()
-  fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf", bbox_inches='tight')
+  if terrain == True:
+    data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
+    x_pos, y_pos = 500, 500
+    reduce_factor = 30
+    y_shift = 1000
+    x_shift = 1000
+    data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+    data = data[::reduce_factor, ::reduce_factor]
+    x = np.linspace(0, 1, data.shape[0])
+    y = np.linspace(0, 1, data.shape[1])
+    data = data.ravel().astype(np.float64)
+    degrees = np.arange(1, 6)
+    instance = LinearRegression2D(x, y, data, degrees)
+  else:
+    points = 40
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points) 
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
+    data = (analytic + noise).ravel()
+    degrees = np.arange(1, 6, dtype=int)
+    # plot of analytic franke
+    plt.style.use('default')
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    surface = ax.plot_surface(x_mesh, y_mesh, analytic, cmap='viridis')
+    fig.colorbar(surface, shrink=0.6)#aspect=20)#, shrink=0.5, aspect=5)
+    ax.view_init(elev=15, azim=-7)
+    ax.set_zlim(-0.10, 1.40)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.tight_layout()
+    # plt.show()
+    fig.savefig("figs/FrankeFunction/franke_function_wo_noise.pdf", bbox_inches='tight')
+    # plot of franke with noise
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    surface = ax.plot_surface(x_mesh, y_mesh, data.reshape(x_mesh.shape),
+                    cmap='viridis')
+    fig.colorbar(surface, shrink=0.6)
+    # ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.view_init(elev=15, azim=-7)
+    ax.set_zlim(-0.10, 1.40)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.tight_layout()
+    # plt.show()
+    fig.savefig("figs/FrankeFunction/franke_function_w_noise.pdf", bbox_inches='tight')
+    # # plot of 5th degree estimation of franke
+    instance = LinearRegression2D(x, y, data)
+    features = instance.features_polynomial_xy(5)
+    features_train, features_test, seen, unseen = train_test_split(features, data, test_size=0.2)
+    beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
+    predicted = features @ beta
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape),
+                    cmap='viridis')
+    fig.colorbar(surface, shrink=0.6, ax=ax)
+    ax.view_init(elev=15, azim=-7)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.tight_layout()#rect=(0.2, 0, 1, 1))
+    # plt.show()
+    fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf", bbox_inches='tight')
   #  plot of betas of model estimation for degree 1-5
   plt.style.use('ggplot')
   pylab.rcParams.update(params)
@@ -146,7 +160,7 @@ def simple_degree_analysis():
   ax.set_prop_cycle(plt.cycler('color', color))
   for degree in degrees:
     features = instance.features_polynomial_xy(degree)
-    features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
+    features_train, features_test, seen, unseen = train_test_split(features, data, test_size=0.2)
     parameters, predicted = instance.ols(features_train, features_test, seen,
                              return_parameters=True)
     betas.append(parameters)
@@ -158,16 +172,20 @@ def simple_degree_analysis():
   ax.set_xticks([i for i in range(1, len(betas[-1])+1)])
   plt.xlabel(r'$\beta$ coefficient number')
   plt.ylabel(r'$\beta$ coefficient value')
-  plt.legend(ncol=3, loc='lower right', fontsize='x-large', columnspacing=0.2, frameon=True, framealpha=0.2, shadow=True)
+  plt.legend(ncol=3, loc='best', fontsize='x-large', columnspacing=0.2, frameon=True, framealpha=0.2, shadow=True)
   plt.tight_layout()
   # plt.show()
-  plt.savefig('figs/FrankeFunction/franke_betas.pdf')
+  if terrain == True:
+    plt.savefig('figs/Terrain/terrain_betas.pdf')
+  else:
+    plt.savefig('figs/FrankeFunction/franke_betas.pdf')
+    # plt.show()
 
 
 
 
 
-def franke_simple_mse_and_r2_analysis():
+def simple_mse_and_r2_analysis(terrain=False):
   """
   Compute predicted for franke function mesh with synthetic noise, with OLS,
   Ridge and Lasso regression for complexities spanning one to five degrees,
@@ -177,16 +195,28 @@ def franke_simple_mse_and_r2_analysis():
 
   """
   np.random.seed(2023)
-  points = 40
-  x = np.arange(0, 1, 1/points)
-  y = np.arange(0, 1, 1/points)  
-  x_mesh, y_mesh = np.meshgrid(x, y)
-  analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)*0.1
-  mock_data = (analytic + noise).ravel()
+  if terrain == True:
+    data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
+    x_pos, y_pos = 500, 500
+    reduce_factor = 30
+    y_shift = 1000
+    x_shift = 1000
+    data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+    data = data[::reduce_factor, ::reduce_factor]
+    x = np.linspace(0, 1, data.shape[0])
+    y = np.linspace(0, 1, data.shape[1])
+    data = data.ravel().astype(np.float64)
+  else:
+    points = 40
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points) 
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
+    data = (analytic + noise).ravel()
   degrees = np.arange(1, 6, dtype=int)
   hyperparameters = np.logspace(-4,4,10, dtype=float)
-  instance = LinearRegression2D(x, y, mock_data,
+  instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters,
                                        center=True, normalize=True)
   regression_methods = [instance.ols, instance.ridge, instance.lasso]
@@ -202,7 +232,10 @@ def franke_simple_mse_and_r2_analysis():
             instance.evaluate_model_mesh(regression_method, eval_func)
         ylabel = convert_to_label(eval_func.__name__)
         ax[i].plot(degrees, eval_model_mesh, color=f'C{i}')
-        filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
+        if terrain == True:
+          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}"
+        else:
+          filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
         filename += f"_{eval_func.__name__}.pdf"
         ax[i].set_ylabel(ylabel)
       plt.tight_layout()
@@ -211,7 +244,10 @@ def franke_simple_mse_and_r2_analysis():
       for eval_func in eval_funcs:
         eval_model_mesh = \
             instance.evaluate_model_mesh(regression_method, eval_func)
-        filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
+        if terrain == True:
+          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}"
+        else:
+          filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
         filename += f"_{eval_func.__name__}.pdf"
         ylabel = convert_to_label(eval_func.__name__)
         fig, ax = instance.visualize_mse_ridge(eval_model_mesh, ylabel)
@@ -219,7 +255,7 @@ def franke_simple_mse_and_r2_analysis():
         fig.savefig(filename)
 
 
-def BVT_bootstrap_analysis():
+def bootstrap_analysis(terrain=False):
   """
   Compute predicteds for franke function mesh with synthetic noise, with OLS
   for complexities spanning one to five degrees, and hyperparameter logspace of
@@ -230,26 +266,39 @@ def BVT_bootstrap_analysis():
   """
   np.random.seed(2023)
   pylab.rcParams.update(params)
-  n_bootstraps = 100
-  points = 40 
-  x = np.arange(0, 1, 1/points)
-  y = np.arange(0, 1, 1/points)
-  x_mesh, y_mesh = np.meshgrid(x, y)
-  analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)*0.1
-  mock_data = (analytic + noise).ravel()
-  degrees = np.arange(1, 14, dtype=int)
-  instance = LinearRegression2D(x, y, mock_data,
+  if terrain == True:
+    data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
+    x_pos, y_pos = 500, 500
+    reduce_factor = 30
+    y_shift = 1000
+    x_shift = 1000
+    data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+    data = data[::reduce_factor, ::reduce_factor]
+    x = np.linspace(0, 1, data.shape[0])
+    y = np.linspace(0, 1, data.shape[1])
+    data = data.ravel().astype(np.float64)
+  else:
+    points = 20 
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+    data = (analytic + noise).ravel()
+  n_bootstraps = 500
+  degrees = np.arange(1, 12, dtype=int)
+  instance = LinearRegression2D(x, y, data,
                                        degrees)
-  
-  regression_methods = [instance.ols]#, instance.ridge, instance.lasso]
   
   eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
   eval_func_names = ['MSE', 'bias', 'variance']
   eval_model_mesh = \
         instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
                                                n_bootstraps)
-  filename = f"figs/FrankeFunction/bootstrap/simple_franke_ols_"
+  if terrain:
+    filename = f"figs/Terrain/bootstrap/BVT_terrain_ols_"
+  else:
+    filename = f"figs/FrankeFunction/bootstrap/BVT_franke_ols_"
   fig, ax = plt.subplots()
   for i, eval_func in enumerate(eval_func_names):
     ax.plot(degrees, eval_model_mesh[i, :], label=eval_func)
@@ -259,12 +308,44 @@ def BVT_bootstrap_analysis():
   ax.set_ylabel("Error")
   ax.set_xticks(degrees[::2])
   fig.tight_layout()
-  filename += f"deg_{np.max(degrees)}_{points}points_{n_bootstraps}_bootstraps.pdf"
+  if terrain:
+    filename += f"deg_{np.max(degrees)}_{n_bootstraps}_bootstraps.pdf"
+  else:
+    filename += f"deg_{np.max(degrees)}_{points}points_{n_bootstraps}_bootstraps.pdf"
   fig.savefig(filename)
+  # plt.show()
+  # Ridge and Lasso with bootstrap
+  if not terrain:
+    points = 40 
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+    data = (analytic + noise).ravel()
+
+  degrees = np.arange(1, 6, dtype=int)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  instance2 = LinearRegression2D(x, y, data,
+                                       degrees, hyperparameters)
+  regression_methods = [instance2.ridge, instance2.lasso]
+  for regression_method in regression_methods:
+    eval_model_mesh = instance2.evaluate_model_mesh_bootstrap(regression_method,
+                                                           mean_squared_error,
+                                                           n_bootstraps)
+    clabel = "MSE"                                                       
+    fig, ax = instance2.visualize_mse_ridge(eval_model_mesh[0], clabel)
+    ax.set_xticks(degrees)
+    label = convert_to_label(regression_method.__name__)
+    if terrain:
+      filename = f"figs/Terrain/bootstrap/bootstrap_analysis_mse_{label}_bootstraps_{n_bootstraps}_terrain.pdf"
+    else:
+      filename = f"figs/FrankeFunction/bootstrap/bootstrap_analysis_mse_{label}_bootstraps_{n_bootstraps}_40x40.pdf"
+    fig.savefig(filename)
   plt.show()
 
 
-def cross_validation_analysis():
+def cross_validation_analysis(terrain=False):
   """
   Compute predicted for franke function mesh with synthetic noise, With ols,
   Ridge, and Lasso regression, for complexities spanning one to five degrees,
@@ -272,46 +353,76 @@ def cross_validation_analysis():
   with MSE, with bootstrapping, and visualize mean of MSEs
   """
   np.random.seed(2023)
-  #x = np.arange(0, 1, 0.05)
-  #y = np.arange(0, 1, 0.05) 
-  x = np.linspace(0, 1, 40)
-  y = np.linspace(0, 1, 40)
-  x_mesh, y_mesh = np.meshgrid(x, y)
-  analytic = franke_function(x_mesh, y_mesh)
-  noise = np.random.normal(0, 1, x_mesh.shape)
-  mock_data = (analytic + 0.1*noise).ravel()
-  degrees = np.arange(1, 6, dtype=int)
-  hyperparameters = np.logspace(-4,0,10, dtype=float)
-  instance = LinearRegression2D(x, y, mock_data,
+  pylab.rcParams.update(params)
+  if terrain == True:
+    data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
+    x_pos, y_pos = 500, 500
+    reduce_factor = 30
+    y_shift = 1000
+    x_shift = 1000
+    data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+    data = data[::reduce_factor, ::reduce_factor]
+    x = np.linspace(0, 1, data.shape[0])
+    y = np.linspace(0, 1, data.shape[1])
+    data = data.ravel().astype(np.float64)
+  else:
+    points = 20 
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+    data = (analytic + noise).ravel()
+  degrees = np.arange(1, 12, dtype=int)
+  hyperparameters = np.logspace(-4,4,10, dtype=float)
+  instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters) 
   k_folds = np.arange(5,11, dtype=int)
   mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
-  fig, ax = plt.subplots(figsize=my_figsize())
+  fig, ax = plt.subplots()
   for i, k_fold in enumerate(k_folds):
     mses = instance.evaluate_model_mesh_cross_validation(instance.ols,
                                                            mean_squared_error,
                                                            k_fold)
-    ax.plot(degrees, mses, label=f"{k_fold}")
-  ax.set_ylabel("Mean MSE")
+    ax.plot(degrees, mses, label=f"k: {k_fold}")
+  ax.set_ylabel("MSE")
   ax.set_xlabel("Polynomial degree")
-  fig.legend()
+  fig.legend(fontsize=25)
   fig.tight_layout()
-  fig.savefig(f"figs/crossval_analysis_mse_ols.pdf")
-  plt.clf()
-  plt.close(fig)
-  
-  regression_methods = [instance.ridge, instance.lasso]
+  if terrain:
+    fig.savefig(f"figs/Terrain/crossval/crossval_analysis_mse_ols_terrain.pdf")
+  else:
+    fig.savefig(f"figs/FrankeFunction/crossval/crossval_analysis_mse_ols.pdf")
+  # plt.show()
+  # plt.clf()
+  # plt.close(fig)
+  if not terrain:
+    points = 40 
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    x_mesh, y_mesh = np.meshgrid(x, y)
+    analytic = franke_function(x_mesh, y_mesh)
+    noise = np.random.normal(0, 1, x_mesh.shape)*0.1
+    data = (analytic + noise).ravel()
   kfold = 5
+  degrees = np.arange(1, 6, dtype=int)
+  instance2 = LinearRegression2D(x, y, data,
+                                       degrees, hyperparameters)
+  regression_methods = [instance2.ridge, instance2.lasso]
   for regression_method in regression_methods:
-    eval_model_mesh = instance.evaluate_model_mesh_cross_validation(regression_method,
+    eval_model_mesh = instance2.evaluate_model_mesh_cross_validation(regression_method,
                                                            mean_squared_error,
                                                            k_fold)
-    clabel = "Mean MSE"                                                       
-    fig, ax = instance.visualize_mse_ridge(eval_model_mesh, clabel)
+    clabel = "MSE"                                                       
+    fig, ax = instance2.visualize_mse_ridge(eval_model_mesh, clabel)
     ax.set_xticks(degrees)
     label = convert_to_label(regression_method.__name__)
-    filename = f"figs/crossval_analysis_mse_{label}.pdf"
+    if terrain:
+      filename = f"figs/Terrain/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_terrain.pdf"
+    else:
+      filename = f"figs/FrankeFunction/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_40x40.pdf"
     fig.savefig(filename)
+  # plt.show()
 
 
 
@@ -323,12 +434,11 @@ def terrain():
   """
   np.random.seed(2023)
   data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
-  print(data.shape)
   x_pos, y_pos = 500, 500
   reduce_factor = 30
   y_shift = 1000
   x_shift = 1000
-  # z = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
+  z = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
   z = data
   z = z[::reduce_factor, ::reduce_factor]
   # n_pts = 2000
@@ -458,11 +568,20 @@ def total_mses_terrain():
       print(f"mean mse {regression_method.__name__}: {mean_mse:.4g}")
 
 if __name__ == '__main__':
-  warnings.filterwarnings('ignore', category=ConvergenceWarning)
-  #simple_degree_analysis()
-  # franke_simple_mse_and_r2_analysis()
-  BVT_bootstrap_analysis()
-  #cross_validation_analysis()
+  warnings.filterwarnings('ignore', category=ConvergenceWarning) # to quell sklearn lasso's convergence warnings 
+  """ generate franke plots and figures """
+  # simple_degree_analysis()
+  # simple_mse_and_r2_analysis()
+  # bootstrap_analysis()
+  # cross_validation_analysis()
+  # generate terrain plots and figures
+  """ generate terrain plots and figures """
+  # simple_degree_analysis(terrain=True)
+  # simple_mse_and_r2_analysis(terrain=True)
+  # bootstrap_analysis(terrain=True)
+  # cross_validation_analysis(terrain=True)
+  """ Not used funcs below might be useful for specific
+    results we don't get from main generating functions """
   #franke()
   # terrain()
   #total_mses_franke()
