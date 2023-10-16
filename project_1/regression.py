@@ -607,6 +607,7 @@ class LinearRegression2D:
       # exit()
       surf = ax.plot_surface(x, y, z_plot, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False)
       fig.colorbar(surf, shrink=0.5, aspect=5)
+      ax.view_init(elev=13, azim=110)
       plt.show()
 
 
