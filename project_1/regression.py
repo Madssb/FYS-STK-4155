@@ -267,7 +267,6 @@ class LinearRegression2D:
 
   def evaluate_bootstrap(self, degree: int, hyperparameter: float,
                          regression_method: callable,
-                         model_eval_funcs: list, # denne er unødvendig nå
                          n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
@@ -295,9 +294,6 @@ class LinearRegression2D:
 
 
     """
-    #model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
-    #err_msg = "model_eval_func not a permitted Model evaluation callable"
-    #assert model_eval_funcs.any() in model_eval_funcs, err_msg
     regression_methods = [self.ols, self.ridge, self.lasso]
     err_msg = "regression_method not method in LinearRegression2D."
     assert regression_method in regression_methods, err_msg
@@ -315,14 +311,6 @@ class LinearRegression2D:
                                       hyperparameter)
       except TypeError:
         predictions[:,i] = regression_method(features_train_, features_test, seen_)
-    
-    # Dette fungerte ikke pga ville ikke la meg iterere over funksjonsliste
-    #model_evals = []
-    #for model_eval_func in model_eval_funcs:
-    #  try:
-    #    model_evals.append(model_eval_func(unseen, predictions))
-    #  except TypeError:
-    #    model_evals.append(model_eval_func(predictions))
 
     model_evals = np.array([mean_squared_error_bootstrapped(unseen, predictions),
                           bias(unseen, predictions),
@@ -330,20 +318,6 @@ class LinearRegression2D:
 
     return model_evals
     
-    #cumulative_model_eval = 0
-    #for _ in range(n_bootstraps):
-    #  features_train_, seen_ = resample(features_train, seen)
-    #  try:
-    #    predicted = regression_method(features_train_, features_test, seen_,
-    #                                  hyperparameter)
-    #  except TypeError:
-    #    predicted = regression_method(features_train_, features_test, seen)
-    #  try:
-    #    cumulative_model_eval += model_eval_func(unseen, predicted)
-    #  except TypeError:
-    #    cumulative_model_eval += model_eval_func(predicted)
-    #return cumulative_model_eval/n_bootstraps
-
   def evaluate_crossval(self, degree: int, hyperparameter: float,
                         regression_method: callable, model_eval_func: callable,
                         k_folds: int) -> float:
@@ -443,7 +417,6 @@ class LinearRegression2D:
     return eval_mesh
 
   def evaluate_model_mesh_bootstrap(self, regression_method: callable,
-                                    model_eval_funcs: list, # denne er unødvendig nå
                                     n_bootstraps: int) -> np.ndarray:
     """
     Compute specified model evaluation quantity mesh for specified regression
@@ -468,7 +441,6 @@ class LinearRegression2D:
 
     """
     assert regression_method in [self.ols, self.ridge, self.lasso]
-    #assert model_eval_func in [mean_squared_error_bootstrapped, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty((3, len(self.degrees)), dtype=float)
       for i, degree in enumerate(self.degrees):
