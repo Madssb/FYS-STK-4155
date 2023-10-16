@@ -4,10 +4,9 @@ in FYS-STK4155.
 
 Functions:
 - franke_function: Evaluates the franke_function for some mesh x,y.
-- mean_squared_error: Compute the MSE for some model and some corresponding
-  analytical expression.
-- r2_score: Compute the R2-score for some model and some corresponding
-  analytical expression.
+- my_figsize: specifies size of figures to suitable for LaTeX.
+- convert_to_label: converts certain names to strings suitable as labels in 
+  figures.
 """
 import numpy as np
 import re
