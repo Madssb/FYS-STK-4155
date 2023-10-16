@@ -12,13 +12,9 @@ sns.set_theme()
 from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
                                       variance, mean_squared_error_bootstrapped)
 from utilities import (franke_function, convert_to_label, my_figsize)
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from sklearn.model_selection import train_test_split
-from matplotlib.ticker import FuncFormatter
-from matplotlib import cm
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import ConvergenceWarning
-from mpl_toolkits.mplot3d import Axes3D
 from regression import LinearRegression2D
 from PIL import Image
 
@@ -186,9 +182,6 @@ def simple_degree_analysis(terrain=False):
     # plt.show()
 
 
-
-
-
 def simple_mse_and_r2_analysis(terrain=False):
   """
   Compute predicted for franke function mesh with synthetic noise, with OLS,
@@ -210,6 +203,8 @@ def simple_mse_and_r2_analysis(terrain=False):
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
+    degrees = np.arange(1, 13, dtype=int)
+    hyperparameters = np.logspace(-8,0,10, dtype=float)
   else:
     points = 40
     x = np.arange(0, 1, 1/points)
@@ -218,8 +213,8 @@ def simple_mse_and_r2_analysis(terrain=False):
     analytic = franke_function(x_mesh, y_mesh)
     noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
     data = (analytic + noise).ravel()
-  degrees = np.arange(1, 6, dtype=int)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
+    degrees = np.arange(1, 6, dtype=int)
+    hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters,
                                        center=True, normalize=True)
@@ -237,7 +232,7 @@ def simple_mse_and_r2_analysis(terrain=False):
         ylabel = convert_to_label(eval_func.__name__)
         ax[i].plot(degrees, eval_model_mesh, color=f'C{i}')
         if terrain == True:
-          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}"
+          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}_maxdeg_{np.max(degrees)}"
         else:
           filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
         filename += f"_{eval_func.__name__}.pdf"
@@ -249,7 +244,7 @@ def simple_mse_and_r2_analysis(terrain=False):
         eval_model_mesh = \
             instance.evaluate_model_mesh(regression_method, eval_func)
         if terrain == True:
-          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}"
+          filename = f"figs/Terrain/MSE_R2/simple_terrain_{regression_method.__name__}maxdeg_{np.max(degrees)}"
         else:
           filename = f"figs/FrankeFunction/MSE_R2/simple_franke_{regression_method.__name__}"
         filename += f"_{eval_func.__name__}.pdf"
@@ -369,6 +364,9 @@ def cross_validation_analysis(terrain=False):
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
+    degrees = np.arange(1, 15, dtype=int)
+    hyperparameters = np.logspace(-8,0,10, dtype=float)
+    kfold = 5 # for heat maps
   else:
     points = 20 
     x = np.arange(0, 1, 1/points)
@@ -377,8 +375,8 @@ def cross_validation_analysis(terrain=False):
     analytic = franke_function(x_mesh, y_mesh)
     noise = np.random.normal(0, 1, x_mesh.shape)*0.1
     data = (analytic + noise).ravel()
-  degrees = np.arange(1, 12, dtype=int)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
+    degrees = np.arange(1, 12, dtype=int)
+    hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters) 
   k_folds = np.arange(5,11, dtype=int)
@@ -391,12 +389,12 @@ def cross_validation_analysis(terrain=False):
     ax.plot(degrees, mses, label=f"k: {k_fold}")
   ax.set_ylabel("MSE")
   ax.set_xlabel("Polynomial degree")
-  fig.legend(fontsize=25)
+  plt.legend(fontsize=25)
   fig.tight_layout()
   if terrain:
-    fig.savefig(f"figs/Terrain/crossval/crossval_analysis_mse_ols_terrain.pdf")
+    fig.savefig(f"figs/Terrain/crossval/crossval_analysis_mse_ols_terrain_maxdeg_{np.max(degrees)}.pdf")
   else:
-    fig.savefig(f"figs/FrankeFunction/crossval/crossval_analysis_mse_ols.pdf")
+    fig.savefig(f"figs/FrankeFunction/crossval/crossval_analysis_mse_ols_maxdeg_{np.max(degrees)}.pdf")
   # plt.show()
   # plt.clf()
   # plt.close(fig)
@@ -408,8 +406,7 @@ def cross_validation_analysis(terrain=False):
     analytic = franke_function(x_mesh, y_mesh)
     noise = np.random.normal(0, 1, x_mesh.shape)*0.1
     data = (analytic + noise).ravel()
-  kfold = 5
-  degrees = np.arange(1, 6, dtype=int)
+  # degrees = np.arange(1, 6, dtype=int)
   instance2 = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters)
   regression_methods = [instance2.ridge, instance2.lasso]
@@ -422,17 +419,17 @@ def cross_validation_analysis(terrain=False):
     ax.set_xticks(degrees)
     label = convert_to_label(regression_method.__name__)
     if terrain:
-      filename = f"figs/Terrain/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_terrain.pdf"
+      filename = f"figs/Terrain/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_terrain_maxdeg_{np.max(degrees)}.pdf"
     else:
-      filename = f"figs/FrankeFunction/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_40x40.pdf"
+      filename = f"figs/FrankeFunction/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_{points}x{points}_maxdeg_{np.max(degrees)}.pdf"
     fig.savefig(filename)
-  # plt.show()
+  plt.show()
 
 
 
 
 
-def terrain():
+def terrain_best_fit():
   """
   TBA
   """
@@ -443,8 +440,10 @@ def terrain():
   y_shift = 1000
   x_shift = 1000
   z = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
-  z = data
+  print(z.shape)
+  # z = data
   z = z[::reduce_factor, ::reduce_factor]
+  print(z.shape)
   # n_pts = 2000
   # ds_factor = int(np.round(np.sqrt((data.shape[0]*data.shape[1])/n_pts)))
   # z = data[::ds_factor,::ds_factor]
@@ -452,13 +451,18 @@ def terrain():
   x = np.linspace(0,1,z.shape[0])
   y = np.linspace(0,1,z.shape[1])
   # print(z.shape)
+  print(z.shape)
+  bef = z 
   z = z.ravel().astype(np.float64)
   # print(len(z))
   # exit()
-  degrees = np.arange(1,25)
-  hyperparameters = np.logspace(-4,4,10, dtype=float)
-  extent = [degrees[0], degrees[-1], np.log10(hyperparameters[0]), np.log10(hyperparameters[-1])]
-  instance = LinearRegression2D(x, y, z, degrees, hyperparameters)
+  # degrees = np.arange(1,25)
+  degree = np.arange(1,21)
+  hyperparameter = 10e-8
+  # hyperparameters = np.logspace(-4,4,10, dtype=float)
+  # extent = [degrees[0], degrees[-1], np.log10(hyperparameters[0]), np.log10(hyperparameters[-1])]
+  # instance = LinearRegression2D(x, y, z, degrees, hyperparameters)
+  instance = LinearRegression2D(x, y, z, degree, hyperparameter, center=False, normalize=False)
   # instance.plot_terrain_3D()
   # exit()
   # print("made it here")
@@ -471,25 +475,78 @@ def terrain():
   # Cross val heat maps
   # instance = LinearRegression2D(x, y, z,
                                       #  degrees, hyperparameters) 
-  k_folds = np.arange(10,11, dtype=int)
+  # k_folds = np.arange(10,11, dtype=int)
+  k_fold = 5
   # degrees_mesh, hyperparameters_mesh = np.meshgrid(degrees, hyperparameters)
   # mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
-  features = instance.features_polynomial_xy(15)
-  # features_train, features_test, seen, unseen = train_test_split(features, mock_data, test_size=0.2)
+  features = instance.features_polynomial_xy(degree.max())
+  # features_train, features_test, seen, unseen = train_test_split(features, z, test_size=0.2)
   x_mesh, y_mesh = np.meshgrid(x, y)
-  predicted = instance.ridge(features, features, z, hyperparameter=10e-4)
-  # fig = plt.figure()
-  # ax = fig.add_subplot(projection='3d')
-  fig, ax = plt.subplots()
-  # check predicted!
-  z_plot = np.concatenate(predicted)
-  if len(y) > len(x):
-    z_plot = np.array_split(z, len(y))
-  elif len(y) < len(x) or len(y) == len(x):
-    z_plot = np.array_split(z, len(x))
-  ax.imshow(z_plot, cmap='viridis')
+  # print(x_mesh.shape)
+  # beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
+  # predicted = features @ beta
+  # print(predicted)
+  # exit()
+  predicted_ols = instance.ols(features, features, z)
+  predicted_ridge = instance.ridge(features, features, z, hyperparameter=hyperparameter)
+  predicted_lasso = instance.lasso(features, features, z, hyperparameter=hyperparameter)
+  
+  fig, axs = plt.subplots(2, 4, figsize=(17, 7))#, sharey='row')
+  color_3D = plt.cm.coolwarm
+  # ax = plt.axes(projection = '3d')
+  for ax in axs[0, :]:
+    ax.axis('off')
+  for ax in axs[1, :]:
+    ax.axis('off')
+  
+  axs[0, 0].set_title('Terrain')
+  axs[0, 0] = fig.add_subplot(2, 4, 1, projection='3d')
+  surface = axs[0, 0].plot_surface(y_mesh, x_mesh, z.reshape(x_mesh.shape),
+                  cmap=color_3D)
+  axs[0, 0].view_init(elev=13, azim=-9)
+  axs[0, 0].set_xticks([]); axs[0, 0].set_yticks([]); axs[0, 0].set_zticks([])
+  axs[0, 0].dist = 8
+
+  axs[0, 1].set_title('OLS')
+  axs[0, 1] = fig.add_subplot(2, 4, 2, projection='3d')
+  axs[0, 1].plot_surface(y_mesh, x_mesh, predicted_ols.reshape(x_mesh.shape),
+                  cmap=color_3D)
+  axs[0, 1].view_init(elev=13, azim=-9)
+  axs[0, 1].set_xticks([]); axs[0, 1].set_yticks([]); axs[0, 1].set_zticks([])
+  axs[0, 1].dist = 8
+
+  axs[0, 2].set_title('Ridge')
+  axs[0, 2] = fig.add_subplot(2, 4, 3, projection='3d')
+  axs[0, 2].plot_surface(y_mesh, x_mesh, predicted_ridge.reshape(x_mesh.shape),
+                  cmap=color_3D)
+  axs[0, 2].view_init(elev=13, azim=-9)
+  axs[0, 2].set_xticks([]); axs[0, 2].set_yticks([]); axs[0, 2].set_zticks([])
+  axs[0, 2].dist = 8
+
+  axs[0, 3].set_title('Lasso')
+  axs[0, 3] = fig.add_subplot(2, 4, 4, projection='3d')
+  axs[0, 3].plot_surface(y_mesh, x_mesh, predicted_lasso.reshape(x_mesh.shape),
+                  cmap=color_3D)
+  axs[0, 3].view_init(elev=13, azim=-9)
+  axs[0, 3].set_xticks([]); axs[0, 3].set_yticks([]); axs[0, 3].set_zticks([])
+  axs[0, 3].dist = 8
+  # instance.plot_terrain_3D()
+  # plt.show()
+  # exit()
+
+  axs[1, 0].imshow(z.reshape(x_mesh.shape), cmap='coolwarm')
+  axs[1, 1].imshow(predicted_ols.reshape(y_mesh.shape), cmap='coolwarm')
+  axs[1, 2].imshow(predicted_ridge.reshape(y_mesh.shape), cmap='coolwarm')
+  axs[1, 3].imshow(predicted_lasso.reshape(y_mesh.shape), cmap='coolwarm')
+
+  # plt.imshow(bef, cmap='coolwarm')
   # ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape))
-  instance.plot_terrain()
+  # instance.plot_terrain()
+  # cbar_ax = fig.add_subplot(111, frame_on=False)
+  plt.tight_layout()
+  cbar = fig.colorbar(surface, ax=axs[:, 3])#, ticks=[np.min(predicted_ols), np.max(predicted_ols)])
+  cbar.set_label('Height above sea level [m]')
+  plt.savefig('figs/Terrain/best_fit.pdf', bbox_inches='tight')
   plt.show()
   exit()
   regression_methods = [instance.ridge, instance.lasso]
@@ -582,11 +639,11 @@ if __name__ == '__main__':
   """ generate terrain plots and figures """
   # simple_degree_analysis(terrain=True)
   # simple_mse_and_r2_analysis(terrain=True)
-  # bootstrap_analysis(terrain=True)
+  # # # bootstrap_analysis(terrain=True) # not needed for paper here mainly as an option
   # cross_validation_analysis(terrain=True)
   """ Not used funcs below might be useful for specific
     results we don't get from main generating functions """
   #franke()
-  # terrain()
+  terrain_best_fit()
   #total_mses_franke()
   #total_mses_terrain()
