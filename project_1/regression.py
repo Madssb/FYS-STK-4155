@@ -269,6 +269,7 @@ class LinearRegression2D:
 
   def evaluate_bootstrap(self, degree: int, hyperparameter: float,
                          regression_method: callable,
+                         model_eval_funcs: callable,
                          n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
@@ -315,12 +316,14 @@ class LinearRegression2D:
       except TypeError:
         predictions[:,i] = regression_method(features_train_, features_test, seen_)
 
+
     model_evals = np.array([mean_squared_error_bootstrapped(unseen, predictions),
                           bias(unseen, predictions),
                           variance(predictions)])
 
     return model_evals
     
+
   def evaluate_crossval(self, degree: int, hyperparameter: float,
                         regression_method: callable, model_eval_func: callable,
                         k_folds: int) -> float:
@@ -420,6 +423,7 @@ class LinearRegression2D:
     return eval_mesh
 
   def evaluate_model_mesh_bootstrap(self, regression_method: callable,
+                                    model_eval_funcs,
                                     n_bootstraps: int) -> np.ndarray:
     """
     Compute specified model evaluation quantity mesh for specified regression
@@ -449,6 +453,7 @@ class LinearRegression2D:
       for i, degree in enumerate(self.degrees):
         eval_mesh[:,i] = self.evaluate_bootstrap(degree, None,
                                                regression_method,
+                                               model_eval_funcs,
                                                n_bootstraps)
       return eval_mesh
     eval_mesh = np.empty((3, len(self.degrees), len(self.hyperparameters)), dtype=float)
@@ -456,6 +461,7 @@ class LinearRegression2D:
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[:, i, j] = self.evaluate_bootstrap(degree, hyperparameter,
                                                   regression_method,
+                                                  model_eval_funcs,
                                                   n_bootstraps)
     return eval_mesh
 
