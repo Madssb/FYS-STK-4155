@@ -18,12 +18,13 @@ from typing import Tuple
 class LinearRegression2D:
   """
   Toolbox for creating predictions with OLS, Ridge and Lasso regression,
-  and evaluating and visualizing their MSE and R2
+  and evaluating and visualizing their MSE and R2. Additionally offers
+  bootstrapping and crossvalidation.
   """
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
                degrees: np.ndarray = None, hyperparameters: np.ndarray = None,
-               test_size=0.2, center=True, normalize=False):
+               test_size=0.2, center=True, normalize=True):
     """
     Instantiate LinearRegression2D object.
 
@@ -126,7 +127,8 @@ class LinearRegression2D:
       Features from test set
     z_train: one-dimensional array of floats
       flattened mesh function from test set
-    
+    return_parameters: Bool
+      additionally returns optimal parameters if True.
     
     Returns
     -------
@@ -307,8 +309,9 @@ class LinearRegression2D:
     for i in range(n_bootstraps):
       features_train_, seen_ = resample(features_train, seen)
       try:
-        predictions[:,i] = regression_method(features_train_, features_test, seen_,
-                                      hyperparameter)
+        predictions[:, i] = regression_method(features_train_, features_test,
+                                              seen_,
+                                              hyperparameter)
       except TypeError:
         predictions[:,i] = regression_method(features_train_, features_test, seen_)
 
@@ -517,7 +520,7 @@ class LinearRegression2D:
 
 
     """
-    fig, ax = plt.subplots(figsize=my_figsize())
+    fig, ax = plt.subplots()
     ax.plot(self.degrees, quantity, label=label)
     ax.set_xlabel("Polynomial degree")
     if ylabel:
@@ -543,11 +546,12 @@ class LinearRegression2D:
       
     """
     assert len(quantity.shape) == 2, f"{len(quantity.shape)=} is not 2."
-    fig, ax = plt.subplots(figsize=my_figsize())
+    fig, ax = plt.subplots()
     degrees_mesh, hyperparameters_mesh = np.meshgrid(
         self.degrees, self.hyperparameters)
+    n_levels = len(self.degrees)*len(self.hyperparameters)
     try:
-      levels = np.linspace(quantity.min(), quantity.max(), 7)
+      levels = np.linspace(quantity.min(), quantity.max(), 30)
       contour = ax.contourf(
           degrees_mesh, hyperparameters_mesh, quantity.T, levels=levels)
     except ValueError:
@@ -555,7 +559,7 @@ class LinearRegression2D:
           degrees_mesh, hyperparameters_mesh, quantity.T)
     ax.set_yscale("log")
     ax.set_xlabel("Polynomial degree")
-    ax.set_ylabel(r"hyperparameter $\lambda$")
+    ax.set_ylabel(r"Penalty parameter [log$_{10}$]")
     ax.grid()
     def format_func(x, _): return f"{x:.2f}"
     cbar = plt.colorbar(contour, format=format_func)
@@ -596,6 +600,7 @@ class LinearRegression2D:
       # exit()
       surf = ax.plot_surface(x, y, z_plot, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False)
       fig.colorbar(surf, shrink=0.5, aspect=5)
+      ax.view_init(elev=13, azim=110)
       plt.show()
 
 

@@ -4,10 +4,9 @@ in FYS-STK4155.
 
 Functions:
 - franke_function: Evaluates the franke_function for some mesh x,y.
-- mean_squared_error: Compute the MSE for some model and some corresponding
-  analytical expression.
-- r2_score: Compute the R2-score for some model and some corresponding
-  analytical expression.
+- my_figsize: specifies size of figures to suitable for LaTeX.
+- convert_to_label: converts certain names to strings suitable as labels in 
+  figures.
 """
 import numpy as np
 import re
@@ -72,7 +71,7 @@ def convert_to_label(metric_name):
     if mse_match:
         metric_name = re.sub(r"mean_squared_error", "MSE", metric_name)
     if r2_score_match:
-        metric_name = re.sub(r"r2_score", "R2-score", metric_name)
+        metric_name = re.sub(r"r2_score", r"R$^2$ score", metric_name)
     if ols_match:
        metric_name = re.sub(r"ols", "OLS", metric_name)
     if ridge_match:
