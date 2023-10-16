@@ -294,10 +294,9 @@ def bootstrap_analysis(terrain=False):
   instance = LinearRegression2D(x, y, data,
                                        degrees)
   
-  eval_funcs = [mean_squared_error_bootstrapped, bias, variance] # unødvendig
   eval_func_names = ['MSE', 'bias', 'variance']
   eval_model_mesh = \
-        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, # eval funcs unødvendig argument, funka ikke å iterere over funksjoner
+        instance.evaluate_model_mesh_bootstrap(instance.ols, 
                                                n_bootstraps)
   if terrain:
     filename = f"figs/Terrain/bootstrap/BVT_terrain_ols_"

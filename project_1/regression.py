@@ -269,7 +269,6 @@ class LinearRegression2D:
 
   def evaluate_bootstrap(self, degree: int, hyperparameter: float,
                          regression_method: callable,
-                         model_eval_funcs: list, # denne er unødvendig nå
                          n_bootstraps: int) -> float:
     """
     Compute specified model evaluation quantity for specified regression method
@@ -297,9 +296,6 @@ class LinearRegression2D:
 
 
     """
-    #model_eval_funcs = [mean_squared_error_bootstrapped, bias, variance]
-    #err_msg = "model_eval_func not a permitted Model evaluation callable"
-    #assert model_eval_funcs.any() in model_eval_funcs, err_msg
     regression_methods = [self.ols, self.ridge, self.lasso]
     err_msg = "regression_method not method in LinearRegression2D."
     assert regression_method in regression_methods, err_msg
@@ -317,15 +313,14 @@ class LinearRegression2D:
                                               seen_,
                                               hyperparameter)
       except TypeError:
-        predictions[:, i] = regression_method(features_train_, features_test,
-                                              seen_)
-    model_evals = np.array([mean_squared_error_bootstrapped(unseen,
-                                                            predictions),
-                            bias(unseen, predictions),
-                            variance(predictions)])
+        predictions[:,i] = regression_method(features_train_, features_test, seen_)
+
+    model_evals = np.array([mean_squared_error_bootstrapped(unseen, predictions),
+                          bias(unseen, predictions),
+                          variance(predictions)])
 
     return model_evals
-
+    
   def evaluate_crossval(self, degree: int, hyperparameter: float,
                         regression_method: callable, model_eval_func: callable,
                         k_folds: int) -> float:
@@ -425,7 +420,6 @@ class LinearRegression2D:
     return eval_mesh
 
   def evaluate_model_mesh_bootstrap(self, regression_method: callable,
-                                    model_eval_funcs: list, # denne er unødvendig nå
                                     n_bootstraps: int) -> np.ndarray:
     """
     Compute specified model evaluation quantity mesh for specified regression
@@ -450,7 +444,6 @@ class LinearRegression2D:
 
     """
     assert regression_method in [self.ols, self.ridge, self.lasso]
-    #assert model_eval_func in [mean_squared_error_bootstrapped, bias, variance]
     if regression_method == self.ols:
       eval_mesh = np.empty((3, len(self.degrees)), dtype=float)
       for i, degree in enumerate(self.degrees):
