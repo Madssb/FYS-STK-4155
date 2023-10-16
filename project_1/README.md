@@ -9,5 +9,6 @@ functions that prove useful for generating figures.
 functions for use in `regression.py`, and `regression.py` contains the methods
 for OLS, Ridge, and Lasso regression, and alternatives for analysing their
 outputs.
-`figs/` contain several subfolders
+`figs/` contain several subfolders which are required to exist for figuress to 
+be succesfully saved when 
 
