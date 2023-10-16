@@ -449,7 +449,6 @@ class LinearRegression2D:
       for i, degree in enumerate(self.degrees):
         eval_mesh[:,i] = self.evaluate_bootstrap(degree, None,
                                                regression_method,
-                                               model_eval_funcs,
                                                n_bootstraps)
       return eval_mesh
     eval_mesh = np.empty((3, len(self.degrees), len(self.hyperparameters)), dtype=float)
@@ -457,7 +456,6 @@ class LinearRegression2D:
       for j, hyperparameter in enumerate(self.hyperparameters):
         eval_mesh[:, i, j] = self.evaluate_bootstrap(degree, hyperparameter,
                                                   regression_method,
-                                                  model_eval_funcs,
                                                   n_bootstraps)
     return eval_mesh
 
