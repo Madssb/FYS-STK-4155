@@ -288,10 +288,10 @@ def bootstrap_analysis(terrain=False):
   instance = LinearRegression2D(x, y, data,
                                        degrees)
   
+  eval_funcs = [mean_squared_error_bootstrapped, bias, variance] 
   eval_func_names = ['MSE', 'bias', 'variance']
   eval_model_mesh = \
-        instance.evaluate_model_mesh_bootstrap(instance.ols, 
-                                               n_bootstraps)
+        instance.evaluate_model_mesh_bootstrap(instance.ols, eval_funcs, n_bootstraps)
   if terrain:
     filename = f"figs/Terrain/bootstrap/BVT_terrain_ols_"
   else:
@@ -631,7 +631,7 @@ if __name__ == '__main__':
   """ generate franke plots and figures """
   # simple_degree_analysis()
   # simple_mse_and_r2_analysis()
-  # bootstrap_analysis()
+  bootstrap_analysis()
   # cross_validation_analysis()
   # generate terrain plots and figures
   """ generate terrain plots and figures """
@@ -642,6 +642,6 @@ if __name__ == '__main__':
   """ Not used funcs below might be useful for specific
     results we don't get from main generating functions """
   #franke()
-  terrain_best_fit()
+  #terrain_best_fit()
   #total_mses_franke()
   #total_mses_terrain()
