@@ -10,7 +10,7 @@ sns.set_theme()
 
 from model_evaluation_metrics import (mean_squared_error, r2_score, bias,
                                       variance, mean_squared_error_bootstrapped)
-from utilities import (franke_function, convert_to_label, my_figsize)
+from utilities import (franke_function, convert_to_label)
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import ConvergenceWarning
@@ -39,7 +39,8 @@ params = {'legend.fontsize': 25,
 def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
                              data_str: str):
   """
-  Visualize all.
+  Visualize all. 
+  Note: Depricated function as the ones below are used for more task specific plot making.
   """
   model_eval_funcs = [mean_squared_error, r2_score, bias, variance]
   eval_funcs_str = ["mse", "r2", "bias", "variance"]
@@ -69,11 +70,17 @@ def make_figs_for_everything(instance: LinearRegression2D, data: np.ndarray,
 
 def simple_degree_analysis(terrain=False):
   """
-  Compute predicted for franke function mesh with synthetic noise, with ols and
-  complexity ranging from 1 degree to 5 degree order x and y polynomial.
-  Visualize aforementioned predictions, and franke function mehs, with and
-  without synthetic noise.
+  Function to investigate Franke function w/w.o noise and Terrain data 
+  for a polynomial degree range of 1 -5 . Computes fit with ols and visualizes
+  the beta values coefficients for the different degree fits.
+
+  Argument:
+    terrain : (bool) default=False
+      to choose if to analyse Franke function or terrain data
+  Returns:
+    None
   """
+
   np.random.seed(2023)
   if terrain == True:
     data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
@@ -83,15 +90,11 @@ def simple_degree_analysis(terrain=False):
     x_shift = 1000
     data = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
     data = data[::reduce_factor, ::reduce_factor]
-    # print(data.shape)
-    # exit()
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
     degrees = np.arange(1, 6)
     instance = LinearRegression2D(x, y, data, degrees)
-    # instance.plot_terrain_3D()
-    # exit()
   else:
     points = 40
     x = np.arange(0, 1, 1/points)
@@ -121,7 +124,6 @@ def simple_degree_analysis(terrain=False):
     surface = ax.plot_surface(x_mesh, y_mesh, data.reshape(x_mesh.shape),
                     cmap='viridis')
     fig.colorbar(surface, shrink=0.6)
-    # ax.tick_params(axis='both', which='major', labelsize=20)
     ax.view_init(elev=15, azim=-7)
     ax.set_zlim(-0.10, 1.40)
     ax.set_xlabel('x')
@@ -145,7 +147,7 @@ def simple_degree_analysis(terrain=False):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    plt.tight_layout()#rect=(0.2, 0, 1, 1))
+    plt.tight_layout()
     # plt.show()
     fig.savefig("figs/FrankeFunction/franke_function_deg_5_predicted.pdf", bbox_inches='tight')
   #  plot of betas of model estimation for degree 1-5
@@ -163,7 +165,6 @@ def simple_degree_analysis(terrain=False):
     parameters, predicted = instance.ols(features_train, features_test, seen,
                              return_parameters=True)
     betas.append(parameters)
-    # vars.append(variance(predicted))
     vars.append(np.mean( np.var(predicted) ))
   for i, beta in enumerate(betas):
     beta_indexes = np.arange(1, len(beta)+1)
@@ -183,12 +184,15 @@ def simple_degree_analysis(terrain=False):
 
 def simple_mse_and_r2_analysis(terrain=False):
   """
-  Compute predicted for franke function mesh with synthetic noise, with OLS,
-  Ridge and Lasso regression for complexities spanning one to five degrees,
-  and hyperparameter logspace of 10**-4 to 10**4. Evaluate predicted with
-  MSE and r2, and visualize model evaluation.
+  Computes fits with OLS, Ridge and Lasso regression for different complexities
+  and hyperparameters. Evaluates MSE and r2 of fits and visualizes model evaluations.
+  Works on either Franke function with noise or terrain data.
 
-
+  Argument:
+    terrain : (bool) default=False
+      to choose if to analyse Franke function or terrain data
+  Returns:
+    None
   """
   np.random.seed(2023)
   if terrain == True:
@@ -202,7 +206,7 @@ def simple_mse_and_r2_analysis(terrain=False):
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
-    degrees = np.arange(1, 13, dtype=int)
+    degrees = np.arange(1, 21, dtype=int)
     hyperparameters = np.logspace(-8,0,10, dtype=float)
   else:
     points = 40
@@ -255,12 +259,14 @@ def simple_mse_and_r2_analysis(terrain=False):
 
 def bootstrap_analysis(terrain=False):
   """
-  Compute predicteds for franke function mesh with synthetic noise, with OLS
-  for complexities spanning one to five degrees, and hyperparameter logspace of
-  10**-4 to 10**4. Evaluate predicteds with MSE and r2, with bootstrapping, and
-  visualize model evaluations.
+  Executes BVT analysis and computes fits with OLS, Ridge and Lasso regression
+  with bootstrap resampling implemented.
 
-
+  Argument:
+    terrain : (bool) default=False
+      to choose if to analyse Franke function or terrain data
+  Returns:
+    None
   """
   np.random.seed(2023)
   pylab.rcParams.update(params)
@@ -345,10 +351,16 @@ def bootstrap_analysis(terrain=False):
 
 def cross_validation_analysis(terrain=False):
   """
-  Compute predicted for franke function mesh with synthetic noise, With ols,
-  Ridge, and Lasso regression, for complexities spanning one to five degrees,
-  and logspaced hyperparameter spanning 10**-4 to 10**4. Evaluate predicteds
-  with MSE, with bootstrapping, and visualize mean of MSEs
+  Computes fits with OLS, Ridge and Lasso regression using K-folds resampling method.
+  Then computes and visualizes the MSE for respective regression method.
+  For OLS it examines MSE with kfolds in range 5 - 10.
+
+
+  Argument:
+    terrain : (bool) default=False
+      to choose if to analyse Franke function or terrain data
+  Returns:
+    None
   """
   np.random.seed(2023)
   pylab.rcParams.update(params)
@@ -363,7 +375,7 @@ def cross_validation_analysis(terrain=False):
     x = np.linspace(0, 1, data.shape[0])
     y = np.linspace(0, 1, data.shape[1])
     data = data.ravel().astype(np.float64)
-    degrees = np.arange(1, 15, dtype=int)
+    degrees = np.arange(1, 21, dtype=int)
     hyperparameters = np.logspace(-8,0,10, dtype=float)
     kfold = 5 # for heat maps
   else:
@@ -379,7 +391,6 @@ def cross_validation_analysis(terrain=False):
   instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters) 
   k_folds = np.arange(5,11, dtype=int)
-  mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
   fig, ax = plt.subplots()
   for i, k_fold in enumerate(k_folds):
     mses = instance.evaluate_model_mesh_cross_validation(instance.ols,
@@ -394,9 +405,6 @@ def cross_validation_analysis(terrain=False):
     fig.savefig(f"figs/Terrain/crossval/crossval_analysis_mse_ols_terrain_maxdeg_{np.max(degrees)}.pdf")
   else:
     fig.savefig(f"figs/FrankeFunction/crossval/crossval_analysis_mse_ols_maxdeg_{np.max(degrees)}.pdf")
-  # plt.show()
-  # plt.clf()
-  # plt.close(fig)
   if not terrain:
     points = 40 
     x = np.arange(0, 1, 1/points)
@@ -405,7 +413,6 @@ def cross_validation_analysis(terrain=False):
     analytic = franke_function(x_mesh, y_mesh)
     noise = np.random.normal(0, 1, x_mesh.shape)*0.1
     data = (analytic + noise).ravel()
-  # degrees = np.arange(1, 6, dtype=int)
   instance2 = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters)
   regression_methods = [instance2.ridge, instance2.lasso]
@@ -430,7 +437,10 @@ def cross_validation_analysis(terrain=False):
 
 def terrain_best_fit():
   """
-  TBA
+  Visualizes the differences between the different regression method fits again the terrain data.
+
+  Retruns:
+    None
   """
   np.random.seed(2023)
   data = np.array(Image.open('data/SRTM_data_Norway_1.tif'))
@@ -439,60 +449,23 @@ def terrain_best_fit():
   y_shift = 1000
   x_shift = 1000
   z = data[y_pos:y_pos+y_shift, x_pos:x_pos+x_shift]
-  print(z.shape)
-  # z = data
   z = z[::reduce_factor, ::reduce_factor]
-  print(z.shape)
-  # n_pts = 2000
-  # ds_factor = int(np.round(np.sqrt((data.shape[0]*data.shape[1])/n_pts)))
-  # z = data[::ds_factor,::ds_factor]
-  # # print(data_downsampled.shape)
   x = np.linspace(0,1,z.shape[0])
   y = np.linspace(0,1,z.shape[1])
-  # print(z.shape)
-  print(z.shape)
-  bef = z 
   z = z.ravel().astype(np.float64)
-  # print(len(z))
-  # exit()
-  # degrees = np.arange(1,25)
   degree = np.arange(1,21)
   hyperparameter = 10e-8
-  # hyperparameters = np.logspace(-4,4,10, dtype=float)
-  # extent = [degrees[0], degrees[-1], np.log10(hyperparameters[0]), np.log10(hyperparameters[-1])]
-  # instance = LinearRegression2D(x, y, z, degrees, hyperparameters)
   instance = LinearRegression2D(x, y, z, degree, hyperparameter, center=False, normalize=False)
-  # instance.plot_terrain_3D()
-  # exit()
-  # print("made it here")
-  # mse_crossval = instance.evaluate_model_mesh(
-  #   instance.ols, mean_squared_error, instance.evaluate_crossval)
-  # fig, ax = instance.visualize_ols(mse_crossval, "MSE")
-  # make_figs_for_everything(instance, z, "terrain")
-  # degrees = np.arange(1, 6, dtype=int)
-  # hyperparameters = np.logspace(-4,4,10, dtype=float)
-  # Cross val heat maps
-  # instance = LinearRegression2D(x, y, z,
-                                      #  degrees, hyperparameters) 
-  # k_folds = np.arange(10,11, dtype=int)
-  k_fold = 5
-  # degrees_mesh, hyperparameters_mesh = np.meshgrid(degrees, hyperparameters)
-  # mean_mses = np.empty_like(k_folds, dtype=float) # unødvendig?
   features = instance.features_polynomial_xy(degree.max())
-  # features_train, features_test, seen, unseen = train_test_split(features, z, test_size=0.2)
   x_mesh, y_mesh = np.meshgrid(x, y)
-  # print(x_mesh.shape)
-  # beta = instance.ols(features_train, features_test, seen, return_parameters=True)[0]
-  # predicted = features @ beta
-  # print(predicted)
-  # exit()
+
   predicted_ols = instance.ols(features, features, z)
   predicted_ridge = instance.ridge(features, features, z, hyperparameter=hyperparameter)
   predicted_lasso = instance.lasso(features, features, z, hyperparameter=hyperparameter)
   
   fig, axs = plt.subplots(2, 4, figsize=(17, 7))#, sharey='row')
   color_3D = plt.cm.coolwarm
-  # ax = plt.axes(projection = '3d')
+
   for ax in axs[0, :]:
     ax.axis('off')
   for ax in axs[1, :]:
@@ -529,49 +502,25 @@ def terrain_best_fit():
   axs[0, 3].view_init(elev=13, azim=-9)
   axs[0, 3].set_xticks([]); axs[0, 3].set_yticks([]); axs[0, 3].set_zticks([])
   axs[0, 3].dist = 8
-  # instance.plot_terrain_3D()
-  # plt.show()
-  # exit()
 
   axs[1, 0].imshow(z.reshape(x_mesh.shape), cmap='coolwarm')
   axs[1, 1].imshow(predicted_ols.reshape(y_mesh.shape), cmap='coolwarm')
   axs[1, 2].imshow(predicted_ridge.reshape(y_mesh.shape), cmap='coolwarm')
   axs[1, 3].imshow(predicted_lasso.reshape(y_mesh.shape), cmap='coolwarm')
 
-  # plt.imshow(bef, cmap='coolwarm')
-  # ax.plot_surface(x_mesh, y_mesh, predicted.reshape(x_mesh.shape))
-  # instance.plot_terrain()
-  # cbar_ax = fig.add_subplot(111, frame_on=False)
   plt.tight_layout()
   cbar = fig.colorbar(surface, ax=axs[:, 3])#, ticks=[np.min(predicted_ols), np.max(predicted_ols)])
   cbar.set_label('Height above sea level [m]')
   plt.savefig('figs/Terrain/best_fit.pdf', bbox_inches='tight')
-  plt.show()
-  exit()
-  regression_methods = [instance.ridge, instance.lasso]
-  for regression_method in regression_methods:
-    fig, ax = plt.subplots()
-    for i, k_fold in enumerate(k_folds):
-      print(f'now doing: {regression_method.__name__} with kfold:{k_fold}')
-      mses = instance.evaluate_model_mesh_cross_validation(regression_method,
-                                                           mean_squared_error,
-                                                           k_fold)
-      plt.contourf(mses.T, extent=extent, levels=30)
-      plt.title(f'{regression_method.__name__} with kfold:{k_fold}')
-      plt.xlabel("Polynomial degree")
-      plt.ylabel(r"Penalty parameter [log$_{10}$]")
-      cbar = plt.colorbar(pad=0.01)
-      cbar.set_label('MSE score')
-      # plt.legend()
-  plt.show()
+  # plt.show()
 
 
 def total_mses_franke():
   """
-  compute mean MSEs for OLS, Ridge and Lasso models fitting Frankes function
+  Computse mean MSEs for OLS, Ridge and Lasso models fitting Frankes function
   output with synthetic noise, cross validated and not.
 
-
+  Note: Depricated, not used to produce main results for paper.
   """
   np.random.seed(2023)
   x = np.arange(0, 1, 0.05)
@@ -598,10 +547,10 @@ def total_mses_franke():
 
 def total_mses_terrain():
   """
-  Compute mean MSEs for OLS, Ridge and Lasso models fitting terrain data,
+  Computes mean MSEs for OLS, Ridge and Lasso models fitting terrain data,
   cross validated and not.
 
-
+  Note: Depricated, not used to produce main results for paper.
   """
   img = Image.open("data/SRTM_data_Norway_1.tif")
   data = np.array(img)
@@ -640,9 +589,4 @@ if __name__ == '__main__':
   # simple_mse_and_r2_analysis(terrain=True)
   # # # bootstrap_analysis(terrain=True) # not needed for paper here mainly as an option
   # cross_validation_analysis(terrain=True)
-  """ Not used funcs below might be useful for specific
-    results we don't get from main generating functions """
-  #franke()
-  terrain_best_fit()
-  #total_mses_franke()
-  #total_mses_terrain()
+  # terrain_best_fit()
