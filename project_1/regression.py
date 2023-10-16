@@ -18,7 +18,8 @@ from typing import Tuple
 class LinearRegression2D:
   """
   Toolbox for creating predictions with OLS, Ridge and Lasso regression,
-  and evaluating and visualizing their MSE and R2
+  and evaluating and visualizing their MSE and R2. Additionally offers
+  bootstrapping and crossvalidation.
   """
 
   def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray = None,
@@ -126,7 +127,8 @@ class LinearRegression2D:
       Features from test set
     z_train: one-dimensional array of floats
       flattened mesh function from test set
-    
+    return_parameters: Bool
+      additionally returns optimal parameters if True.
     
     Returns
     -------
@@ -311,38 +313,18 @@ class LinearRegression2D:
     for i in range(n_bootstraps):
       features_train_, seen_ = resample(features_train, seen)
       try:
-        predictions[:,i] = regression_method(features_train_, features_test, seen_,
-                                      hyperparameter)
+        predictions[:, i] = regression_method(features_train_, features_test,
+                                              seen_,
+                                              hyperparameter)
       except TypeError:
-        predictions[:,i] = regression_method(features_train_, features_test, seen_)
-    
-    # Dette fungerte ikke pga ville ikke la meg iterere over funksjonsliste
-    #model_evals = []
-    #for model_eval_func in model_eval_funcs:
-    #  try:
-    #    model_evals.append(model_eval_func(unseen, predictions))
-    #  except TypeError:
-    #    model_evals.append(model_eval_func(predictions))
-
-    model_evals = np.array([mean_squared_error_bootstrapped(unseen, predictions),
-                          bias(unseen, predictions),
-                          variance(predictions)])
+        predictions[:, i] = regression_method(features_train_, features_test,
+                                              seen_)
+    model_evals = np.array([mean_squared_error_bootstrapped(unseen,
+                                                            predictions),
+                            bias(unseen, predictions),
+                            variance(predictions)])
 
     return model_evals
-    
-    #cumulative_model_eval = 0
-    #for _ in range(n_bootstraps):
-    #  features_train_, seen_ = resample(features_train, seen)
-    #  try:
-    #    predicted = regression_method(features_train_, features_test, seen_,
-    #                                  hyperparameter)
-    #  except TypeError:
-    #    predicted = regression_method(features_train_, features_test, seen)
-    #  try:
-    #    cumulative_model_eval += model_eval_func(unseen, predicted)
-    #  except TypeError:
-    #    cumulative_model_eval += model_eval_func(predicted)
-    #return cumulative_model_eval/n_bootstraps
 
   def evaluate_crossval(self, degree: int, hyperparameter: float,
                         regression_method: callable, model_eval_func: callable,
