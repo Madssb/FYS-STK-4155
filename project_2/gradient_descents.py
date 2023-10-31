@@ -36,7 +36,6 @@ class GradientDescent:
     """
     iteration = 0
     guess = self.init_guess
-    guesses = [guess]
     while True:
       new_guess = self.advance(guess)
       change = new_guess - guess

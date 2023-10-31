@@ -48,28 +48,19 @@ class FeedForwardNeuralNetwork:
     self.n_outputs = n_outputs
     self.activation_function = activation_function
 
-  def initialize_weights_and_biases(self, random_type='normal'):
-    """Initialize weights and biases.
+  def initialize_weights_and_biases(self):
+    """Initialize weights and biases with normal dist.
 
-    Parameters
-    ----------
-    random_type : {'normal', 'uniform'}
     """
-    if not random_type in ["uniform", "normal"]:
-       raise TypeError("random_type must be 'uniform' of 'normal'.")
     self.weights = []
     self.biases = []
-    if random_type == "uniform":
-        rand = np.random.rand
-    else:
-        rand = np.random.normal
     for _ in range(self.n_hidden_layers):
-      weight = rand(self.n_neurons, self.n_inputs)
-      bias = rand(self.n_neurons, 1)
+      weight = np.random.normal(size=(self.n_neurons, self.n_inputs))
+      bias = np.random.normal(size=(self.n_neurons, 1))
       self.weights.append(weight)
       self.biases.append(bias)
-    weight = rand(self.n_neurons,1)
-    bias = rand(self.n_outputs, 1)
+    weight = np.random.normal(size=(self.n_neurons, 1))
+    bias = np.random.normal(size=(self.n_outputs, 1))
     self.weights.append(weight)
     self.biases.append(bias)
 
@@ -82,6 +73,8 @@ class FeedForwardNeuralNetwork:
     tuple
       Parameters
     """
+    assert all(isinstance(weight, np.ndarray) for weight in self.weights), "Not all elements in self.weights are NumPy ndarrays"
+    assert all(isinstance(bias, np.ndarray) for bias in self.biases), "Not all elements in self.biases are NumPy ndarrays"
     parameters = (np.concatenate([w.ravel() for w in self.weights]),
                   np.concatenate([b.ravel() for b in self.biases]))
     return parameters
