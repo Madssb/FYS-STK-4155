@@ -5,7 +5,7 @@ class GradientDescent:
   Find local minima with Gradient Descent
   """
   def __init__(self, learning_rate: float, grad_func: callable, 
-               init_guess: float | np.ndarray | tuple):
+               init_guess: float | np.ndarray | tuple, *additional_grad_args):
     """
     Initialize GradientDescent
 
@@ -22,12 +22,13 @@ class GradientDescent:
     self.learning_rate = learning_rate
     self.grad_func = grad_func
     self.init_guess = init_guess
+    self.additional_grad_args = additional_grad_args
   
   def advance(self, guess):
     """
     Advance minima value guess
     """
-    return guess - self.learning_rate*self.grad_func(guess)
+    return guess - self.learning_rate*self.grad_func(guess, *self.additional_grad_args)
   
   def __call__(self, iterations_max: int, tolerance: float):
     """
