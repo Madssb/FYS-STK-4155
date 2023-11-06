@@ -345,7 +345,7 @@ def bootstrap_analysis(terrain=False):
     else:
       filename = f"figs/FrankeFunction/bootstrap/bootstrap_analysis_mse_{label}_bootstraps_{n_bootstraps}_40x40.pdf"
     fig.savefig(filename)
-  plt.show()
+  # plt.show()
 
 
 def cross_validation_analysis(terrain=False):
@@ -376,7 +376,6 @@ def cross_validation_analysis(terrain=False):
     data = data.ravel().astype(np.float64)
     degrees = np.arange(1, 21, dtype=int)
     hyperparameters = np.logspace(-8,0,10, dtype=float)
-    kfold = 5 # for heat maps
   else:
     points = 20 
     x = np.arange(0, 1, 1/points)
@@ -389,6 +388,7 @@ def cross_validation_analysis(terrain=False):
     hyperparameters = np.logspace(-4,4,10, dtype=float)
   instance = LinearRegression2D(x, y, data,
                                        degrees, hyperparameters) 
+  kfold = 5 # for heat maps
   k_folds = np.arange(5,11, dtype=int)
   fig, ax = plt.subplots()
   for i, k_fold in enumerate(k_folds):
@@ -428,7 +428,7 @@ def cross_validation_analysis(terrain=False):
     else:
       filename = f"figs/FrankeFunction/crossval/crossval_analysis_mse_{label}_kfolds_{kfold}_{points}x{points}_maxdeg_{np.max(degrees)}.pdf"
     fig.savefig(filename)
-  plt.show()
+  # plt.show()
 
 
 
@@ -578,19 +578,14 @@ def total_mses_terrain():
 if __name__ == '__main__':
   warnings.filterwarnings('ignore', category=ConvergenceWarning) # to quell sklearn lasso's convergence warnings 
   """ generate franke plots and figures """
-  # simple_degree_analysis()
-  # simple_mse_and_r2_analysis()
+  simple_degree_analysis()
+  simple_mse_and_r2_analysis()
   bootstrap_analysis()
-  # cross_validation_analysis()
-  # generate terrain plots and figures
+  cross_validation_analysis()
+  plt.close(fig='all')
   """ generate terrain plots and figures """
-  # simple_degree_analysis(terrain=True)
-  # simple_mse_and_r2_analysis(terrain=True)
-  # # # bootstrap_analysis(terrain=True) # not needed for paper here mainly as an option
-  # cross_validation_analysis(terrain=True)
-  """ Not used funcs below might be useful for specific
-    results we don't get from main generating functions """
-  #franke()
-  #terrain_best_fit()
-  #total_mses_franke()
-  #total_mses_terrain()
+  simple_degree_analysis(terrain=True)
+  simple_mse_and_r2_analysis(terrain=True)
+  # # bootstrap_analysis(terrain=True) # not needed for paper here mainly as an option
+  cross_validation_analysis(terrain=True)
+  terrain_best_fit()
