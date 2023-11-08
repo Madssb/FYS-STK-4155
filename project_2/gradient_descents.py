@@ -287,10 +287,53 @@ class StochasticGradientDescent(GradientDescent):
         return guess, n_iterations
 
 def test_stochastic_gradient_descent():
-    optimizer = StochasticGradientDescent()
-    def simple_polynomial(a,b,c,d,x):
-        return a*x**3 + b*x**2 + c*x + d
-    
-    def meta_mse():
-        model = simple_polynomial(a,b,c,d,x)
+    """
+    Validate StochasticGradientDescent with a simple example.
+    """
+    def simple_function(x):
+        """
+        Compute a simple function.
+
+        Parameters
+        ----------
+        x : float or numpy.ndarray
+            Input values.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Function values.
+        """
+        return 2 * x**2 + 3 * x + 1
+
+    def simple_gradient(x):
+        """
+        Compute the gradient of a simple function.
+
+        Parameters
+        ----------
+        x : float or numpy.ndarray
+            Input values.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Gradient values.
+        """
+        return 4 * x + 3
+
+    learning_rate = 0.01
+    batch_size = 10
+    num_mini_batches = 20
+    initial_guess = 2.0
+
+    optimizer = StochasticGradientDescent(learning_rate, simple_gradient, initial_guess, batch_size, num_mini_batches)
+    estimated_minima, num_iterations = optimizer(10000, 1e-5)
+
+    # Analytical solution for the minimum of the simple function
+    analytical_minima = -3/4
+
+    # Check if the estimated minima is close to the analytical minima
+    tolerance = 1e-3
+    assert np.abs(estimated_minima - analytical_minima) < tolerance
         
