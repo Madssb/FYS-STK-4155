@@ -6,11 +6,29 @@ np.random.seed(2023)
 def sigmoid(x):
     return 1./(1 + np.exp(-x))
 
-def sigmoid_derivative(f):
+def sigmoid_derivative(x):
     """
     Given a sigmoid function f(x), this will be its derivative df/dx
     """
-    return f * (1 - f)
+    return sigmoid(x) * (1 - sigmoid(x))
+
+def ReLU(x):
+    return np.max(0, x)
+
+def ReLU_derivative(x):
+    if x <= 0:
+        return 0
+    else:
+        return 1
+
+def leaky_ReLU(x):
+    return max(0.01*x, x)
+
+def leaky_ReLU_derivative(x):
+    if x <= 0:
+        return 0.01
+    else:
+        return 1
 
     
 # Accuracy score functions for classification
@@ -169,7 +187,7 @@ class FeedForwardNeuralNetwork:
         output_weights = np.expand_dims(self.output_weights,1) # Broadcast the vector to allow matrix multiplication
         
         error_hidden = np.zeros((self.batch_size, self.n_hidden_neurons, self.n_hidden_layers))
-        error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.a_hidden[:,:,-1])
+        error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.z_hidden[:,:,-1])
 
         if self.n_hidden_layers > 1: 
             self.HIDDEN_weights_gradient = np.zeros((self.n_hidden_neurons, self.n_hidden_neurons, self.n_hidden_layers-1))
@@ -178,10 +196,10 @@ class FeedForwardNeuralNetwork:
             self.HIDDEN_bias_gradient[:,-1] = np.sum(error_hidden[:,:,-1], axis=0)
             for l in range(self.n_hidden_layers-2, 0,-1):
                 # Since HIDDEN_weights and_bias apply to layers 2 and on, the index l corresponds to get the (l+1)-th layer. 
-                error_hidden[:,:,l] = error_hidden[:,:,l+1] @ self.HIDDEN_weights[:,:,l].T * self.hidden_activation_derivative(self.a_hidden[:,:,l])
+                error_hidden[:,:,l] = error_hidden[:,:,l+1] @ self.HIDDEN_weights[:,:,l].T * self.hidden_activation_derivative(self.z_hidden[:,:,l])
                 self.HIDDEN_weights_gradient[:,:,l-1] = self.a_hidden[:,:,l-1].T @ error_hidden[:,:,l]
                 self.HIDDEN_bias_gradient[:,l-1] = np.sum(error_hidden[:,:,l], axis=0)
-            error_hidden[:,:,0] = error_hidden[:,:,1] @ self.HIDDEN_weights[:,:,0].T * self.hidden_activation_derivative(self.a_hidden[:,:,0])
+            error_hidden[:,:,0] = error_hidden[:,:,1] @ self.HIDDEN_weights[:,:,0].T * self.hidden_activation_derivative(self.z_hidden[:,:,0])
         
         self.hidden_weights_gradient = self.X.T @ error_hidden[:,:,0]
         self.hidden_bias_gradient = np.sum(error_hidden[:,:,0], axis=0)
@@ -260,7 +278,7 @@ target = np.array(diagnosis_int)
 
 #Shuffle and split into training and test data
 from sklearn.model_selection import train_test_split
-X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
+X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.5)
 
 # Explore parameter space
 etas = np.logspace(-5,1,7)
@@ -291,8 +309,8 @@ sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Training Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/train_accuracy.pdf')
-plt.savefig('figures/nn_classification/train_accuracy.png')
+plt.savefig('figures/nn_classification/train_accuracy_0.5.pdf')
+plt.savefig('figures/nn_classification/train_accuracy_0.5.png')
 
 sns.set()
 fig, ax = plt.subplots(figsize = (10, 10))
@@ -300,5 +318,5 @@ sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Test Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/test_accuracy.pdf')
-plt.savefig('figures/nn_classification/test_accuracy.png')
+plt.savefig('figures/nn_classification/test_accuracy_0.5.pdf')
+plt.savefig('figures/nn_classification/test_accuracy_0.5.png')
