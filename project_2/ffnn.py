@@ -65,7 +65,7 @@ class FeedForwardNeuralNetwork:
     self.biases.append(bias)
 
 
-  def extract_sparameters(self):
+  def extract_parameters(self):
     """Extract model parameters.
 
     Returns
@@ -73,8 +73,10 @@ class FeedForwardNeuralNetwork:
     tuple
       Parameters
     """
-    assert all(isinstance(weight, np.ndarray) for weight in self.weights), "Not all elements in self.weights are NumPy ndarrays"
-    assert all(isinstance(bias, np.ndarray) for bias in self.biases), "Not all elements in self.biases are NumPy ndarrays"
+    assert all(isinstance(weight, (float, np.ndarray)) and weight.size == 1 for weight in self.weights), "Invalid element in self.weights"
+    assert all(isinstance(bias, (float, np.ndarray)) and bias.size == 1 for bias in self.biases), "Invalid element in self.biases"
+    # assert all(isinstance(weight, np.ndarray) for weight in self.weights), "Not all elements in self.weights are NumPy ndarrays"
+    # assert all(isinstance(bias, np.ndarray) for bias in self.biases), "Not all elements in self.biases are NumPy ndarrays"
     parameters = (np.concatenate([w.ravel() for w in self.weights]),
                   np.concatenate([b.ravel() for b in self.biases]))
     return parameters

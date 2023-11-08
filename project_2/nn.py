@@ -1,12 +1,13 @@
 import numpy as np
 from random import random, seed
+from activation_functions import sigmoid
 np.random.seed(2023)
 
 # Activation function
-def sigmoid(x):
-    return 1./(1 + np.exp(-x))
+# def sigmoid(x):
+#     return 1./(1 + np.exp(-x))
 
-def sigmoid_derivative(f):
+def sigmoid_derivative(f: float):
     """
     Given a sigmoid function f(x), this will be its derivative df/dx
     """
