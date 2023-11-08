@@ -29,7 +29,7 @@ def indicator(target, probability):
         return target 
     if probability < 0.5 and target == 0:
         # If the probability of predicting 1 is lower than 0.5, I classify this as a prediction of 0
-        # If the target is also 0 I, I signal that the prediction is correct by return 1
+        # If the target is also 0, I signal that the prediction is correct by return 1
         return 1
     else:
         # If the target is not 0, I signal that the prediction is not correct by returning 0
@@ -63,7 +63,7 @@ def back_propagation(X, Y, hidden_weights, output_weights, hidden_bias, output_b
     a_hidden, a_output = feed_forward_pass(X, hidden_weights, output_weights, hidden_bias, output_bias)
     
     error_output = a_output - Y
-    output_weights_gradient = a_hidden.T @ error_output
+    output_weights_gradient = a_hidden.T @ error_output # nb! activation function derivative baked in
     output_bias_gradient = np.sum(error_output)
     error_output = np.expand_dims(error_output,1) # Broadcast the vector to allow matrix multiplication
     output_weights = np.expand_dims(output_weights,1) # Broadcast the vector to allow matrix multiplication
@@ -169,10 +169,12 @@ train_accuracy = np.zeros((len(etas), len(lmbds)))
 for i, eta in enumerate(etas):
     for j, lmbd in enumerate(lmbds):
         
-        train_accuracy[i, j] = train_model(X_train, target_train, 30, eta=eta, lmbd=lmbd, momentum=0.0, n_iterations=1000)
+        train_accuracy[i, j] = train_model(X_train, target_train, 200, eta=eta, lmbd=lmbd, momentum=0.0, n_iterations=1000)
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+train_accuracy = pd.DataFrame(train_accuracy, columns = lmbds, index = etas)
 
 sns.set()
 fig, ax = plt.subplots(figsize = (10, 10))
