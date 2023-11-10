@@ -3,34 +3,32 @@ from random import random, seed
 np.random.seed(2023)
 
 # Activation function
+#class sigmoid:
+#    def __init__(self):
+#        pass
+#    def func(self, x):
+#        return 1./(1 + np.exp(-x))
+#    def prime(self, x):
+#        return self.func(x) * (1 - self.func(x))
+
 def sigmoid(x):
     return 1./(1 + np.exp(-x))
 
 def sigmoid_derivative(x):
-    """
-    Given a sigmoid function f(x), this will be its derivative df/dx
-    """
     return sigmoid(x) * (1 - sigmoid(x))
 
 def ReLU(x):
-    return np.max(0, x)
+    return np.maximum(0, x)
 
 def ReLU_derivative(x):
-    if x <= 0:
-        return 0
-    else:
-        return 1
+    return np.heaviside(x, np.zeros_like(x))
 
 def leaky_ReLU(x):
-    return max(0.01*x, x)
+    return np.maximum(0.01*x, x)
 
-def leaky_ReLU_derivative(x):
-    if x <= 0:
-        return 0.01
-    else:
-        return 1
+def leaky_ReLU_derivative(x, alpha=0.01):
+    return np.where(x>0, 1, alpha)
 
-    
 # Accuracy score functions for classification
 
 def hard_classifier(probability):
@@ -58,7 +56,7 @@ class FeedForwardNeuralNetwork:
                n_hidden_layers: int,
                n_hidden_neurons: int,
                output_activation_function: callable, 
-               hidden_activation_function: callable,
+               hidden_activation_function: object,
                hidden_activation_derivative: callable,
                eta=0.1, lmbd=0.01, batch_size=100, n_epochs=10, momentum=0):
         """Constructor
@@ -245,7 +243,6 @@ class FeedForwardNeuralNetwork:
         else:
             return a_output
 
-
 # Import data
 
 import pandas as pd 
@@ -289,8 +286,8 @@ test_accuracy = np.zeros((len(etas), len(lmbds)))
 for i, eta in enumerate(etas):
     for j, lmbd in enumerate(lmbds):
 
-        instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=100, 
-                            output_activation_function=sigmoid, hidden_activation_function= sigmoid, hidden_activation_derivative=sigmoid_derivative,
+        instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=1, n_hidden_neurons=50, 
+                            output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative,
                             eta=eta, lmbd=lmbd, batch_size=100, n_epochs=50)
         instance.train_network()
 
@@ -309,8 +306,8 @@ sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Training Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/train_accuracy_0.5.pdf')
-plt.savefig('figures/nn_classification/train_accuracy_0.5.png')
+plt.savefig('figures/nn_classification/train_accuracy_ReLU.pdf')
+plt.savefig('figures/nn_classification/train_accuracy_ReLU.png')
 
 sns.set()
 fig, ax = plt.subplots(figsize = (10, 10))
@@ -318,5 +315,5 @@ sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Test Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/test_accuracy_0.5.pdf')
-plt.savefig('figures/nn_classification/test_accuracy_0.5.png')
+plt.savefig('figures/nn_classification/test_accuracy_ReLU.pdf')
+plt.savefig('figures/nn_classification/test_accuracy_ReLU.png')
