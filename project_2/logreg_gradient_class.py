@@ -2,6 +2,7 @@ import numpy as np
 np.random.seed(2023)
 from activation_functions import sigmoid
 from gradient_descents import StochasticGradientDescent, Adagrad, RMSProp, ADAM
+from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative
 
 class LogisticRegression:
 
