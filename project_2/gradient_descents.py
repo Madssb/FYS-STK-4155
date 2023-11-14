@@ -44,13 +44,17 @@ class StochasticGradientDescent:
         Targets.
     cost_grad_func: callable
         gradient of cost function w.r.t parameters. Must take arguments 
-        `input`, `target, `model_parameters`.
+        `input`, `target`, `model_parameters`.
     model_parameters_init: np.ndarray
         intial model parameters.
     momentum: np.ndarray
         Momentum of parameters.
     data_indices: np.ndarray
         Data indices.
+    
+    Methods
+    -------
+
     """
 
     def __init__(self, config: SGDConfig, input: np.ndarray, 
@@ -66,7 +70,7 @@ class StochasticGradientDescent:
         self.cost_grad_func = cost_grad_func
         self.model_parameters_init = model_parameters_init
         self.momentum = np.zeros_like(model_parameters_init)
-        self.data_indices = np.arange(model_parameters_init.shape[0])
+        self.data_indices = np.arange(target.shape[0])
 
     def average_gradient(self, model_parameters: np.ndarray):
         """
@@ -74,14 +78,15 @@ class StochasticGradientDescent:
         of size `mini_batch_size` without replacement.
         """
         avg_gradient = 0
-        for _ in self.n_mini_batches:
+        for _ in range(self.n_mini_batches):
             mini_batch_indices = self.rng.choice(self.data_indices, 
                                                 size=self.mini_batch_size,
                                                 replace=False)
             mini_batch_input = self.input[mini_batch_indices]
             mini_batch_target = self.target[mini_batch_indices]
-            avg_gradient += self.gradient(mini_batch_input, mini_batch_target,
-                                          model_parameters)
+            avg_gradient += self.cost_grad_func(mini_batch_input, 
+                                                mini_batch_target,
+                                                model_parameters)
         return avg_gradient
 
 
@@ -108,10 +113,11 @@ class StochasticGradientDescent:
         parameters = self.model_parameters_init
         for iteration in range(n_iterations_max):
             parameters_new = self.advance(parameters)
-            if np.abs(np.sum(parameters_new - parameters)) < tolerance:
+            if np.abs(parameters_new - parameters).all() < tolerance:
                 parameters = parameters_new
                 break
             parameters = parameters_new
+        print(f"# of iterations: {iteration}")
         return parameters#, iteration
 
 
