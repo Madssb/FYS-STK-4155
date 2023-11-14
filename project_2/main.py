@@ -1,17 +1,13 @@
 import numpy as np
 import jax.numpy as jnp
 from jax import grad
+import warnings
 from ffnn import FeedForwardNeuralNetwork
-from gradient_descents import StochasticGradientDescent, SGDConfig
+from gradient_descents import StochasticGradientDescent, SGDConfig, Adagrad
 from activation_functions import sigmoid
 from loss_functions import mean_squared_error
 
 import matplotlib.pyplot as plt
-
-
-rng = np.random.default_rng(2023)
-
-
 
 def poly_features(input, degree):
     """
@@ -32,30 +28,221 @@ def poly_features(input, degree):
 
     return design_matrix
 
+def cost_grad_func(features, target, parameters):
+    """
+    cost function differentiated w.r.t parameters
+    """
+    return -2*features.T @ (target - features @ parameters)
+
+def franke_function(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+  """
+  Evaluate Franke's function for given x, y mesh.
 
 
-def optimize_polynomial_with_sgd():
+  Parameters
+  ----------
+  x: n-dimensional array of floats
+    Meshgrid for x.
+  y: n-dimensional array of floats
+    Meshgrid for y.
+
+
+  Returns
+  -------
+  array like:
+    Franke's function mesh.
+
+
+  """
+  term1 = 0.75*np.exp(-(0.25*(9*x-2)**2) - 0.25*((9*y-2)**2))
+  term2 = 0.75*np.exp(-((9*x+1)**2)/49.0 - 0.1*(9*y+1))
+  term3 = 0.5*np.exp(-(9*x-7)**2/4.0 - 0.25*((9*y-3)**2))
+  term4 = -0.2*np.exp(-(9*x-4)**2 - (9*y-7)**2)
+  return term1 + term2 + term3 + term4
+
+def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
+    """
+    Construct design matrix for two-dimensional polynomial, where columns are:
+    (1 + y + ... y**p) + x(1 + y + ... y**p-1) + ... + x**p,
+    where p is degree for polynomial, x = x_i and y = y_j, indexed such that
+    row index k  =  len(y)*i + j.
+
+
+    Parameters
+    ----------
+    x: np.ndarray
+        x inputs
+    y: np.ndarray
+        y inputs.
+    degree : int
+        Polynomial degree for model.
+
+
+    Returns
+    -------
+    np.ndarray, shape (m*n, (degree+1)*(degree+2)/2), dtype float
+        Design matrix for two dimensional polynomial of specified degree. 
+    """
+    len_x = x.shape[0]
+    len_y = y.shape[0]
+    features_xy = np.empty(
+        (len_x*len_y, int((degree+1)*(degree+2)/2)), dtype=float)
+    for i, x_ in enumerate(x):
+        for j, y_ in enumerate(y):
+            row = len_y*i + j
+            col_count = 0
+            for k in range(degree + 1):
+                for l in range(degree + 1 - k):
+                    features_xy[row, col_count] = x_**k*y_**l
+                    col_count += 1
+    return features_xy
+
+# Generate data
+rng = np.random.default_rng(2023)
+x = rng.random(50)
+y = rng.random(50)
+# x = np.linspace(0,1,50)
+# y = np.linspace(0,1,50)
+x_mesh, y_mesh = np.meshgrid(x, y)
+noise = rng.normal(size=(50,50))*0.1
+target_mesh = franke_function(x_mesh, y_mesh) + noise
+target = target_mesh.flatten()
+
+# Generate feature polynomial
+degree = 10
+features = features_polynomial_2d(x, y, degree)
+# parameters and model
+n_parameters = int((degree+1)*(degree+2)/2)
+init_parameters = rng.random(n_parameters)
+model = features @ init_parameters
+model_mesh = model.reshape(target_mesh.shape)
+# Create a 3D surface plot
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot_surface(x_mesh, y_mesh, model_mesh, cmap='viridis')
+
+# # Add labels and title
+# ax.set_xlabel('X-axis')
+# ax.set_ylabel('Y-axis')
+# ax.set_zlabel('Z-axis')
+# plt.title('3D Surface Plot of a 2D Polynomial')
+# plt.show()
+
+# learning_rate = 1e-4
+# momentum = 0.9
+# max_iter = 10_000
+# tolerance = 5e-5
+# config = SGDConfig(1e-4, None, target.shape[0]//64, 64, 2023)
+# adagrad_optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
+# optimized_parameters = adagrad_optimizer(10_000,1e-5)
+# model = features @ optimized_parameters
+# adagrad_mse = mean_squared_error(target, model)
+# print(f"AdaGrad MSE: {adagrad_mse:.4g}")
+# quit()
+
+
+
+
+
+learning_rate = 1e-4
+momentum = 0.9
+max_iter = 10_000
+tolerance = 5e-5
+# plain Gradient Descent
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+def run_gradient_methods(learning_rate, momentum, max_iter, tolerance):
+    print(f"{learning_rate=:.4g}, {momentum=:.4g}, {tolerance=:.4g}")
+    config = SGDConfig(learning_rate, 0, 1, target.shape[0], 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gd = mean_squared_error(target, best_model)
+    print(f"Gradient Descent MSE: {mse_gd:.4g}")
+    # Gradient Descent with momentum
+    config = SGDConfig(learning_rate, momentum, 1, target.shape[0], 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gdm = mean_squared_error(target, best_model)
+    print(f"Gradient Descent with Momentum MSE: {mse_gdm:.4g}")
+    # Stochastic Gradient Descent
+    config = SGDConfig(learning_rate, 0, int(target.shape[0]/64),  16, 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gdm = mean_squared_error(target, best_model)
+    print(f"Stochastic Gradient Descent MSE: {mse_gdm:.4g}")
+    # Stochastic Gradient Descent with Momentum
+    config = SGDConfig(learning_rate, momentum, int(target.shape[0]/64),  16, 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gdm = mean_squared_error(target, best_model)
+    print(f"Stochastic Gradient Descent with Momentum MSE: {mse_gdm:.4g}")
+    adagrad_optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
+    optimized_parameters = adagrad_optimizer(10_000,1e-5)
+    model = features @ optimized_parameters
+    adagrad_mse = mean_squared_error(target, model)
+    print(f"AdaGrad MSE: {adagrad_mse:.4g}")
+run_gradient_methods(103e-6, 0.9, 10_000, 1e-3)
+#run_gradient_methods(4e-4, 0.9, 10_000, 1e-4)
+
+def gd_optimize():
+    """
+    Optimize polynomial with plain gradient descent
+    """
+    print("Plain gradient descent")
+    rng = np.random.default_rng(2023)
     input = rng.random(50)
-    poly_coeffs =10*rng.random(5)
+    degree = 5
+    #input = np.linspace(-10,10,50)
+    poly_coeffs =10*rng.random(degree + 1)
     print(f"{poly_coeffs=}")
     poly  = np.polynomial.Polynomial(poly_coeffs)
     noise = rng.normal(50) 
     target = poly(input) + noise
-    features = poly_features(input, 4)
-    init_parameters = 10*rng.random(5)
+    features = poly_features(input, degree)
+    init_parameters = 10*rng.random(degree + 1)
     print(f"{init_parameters=}")
     model = features @ init_parameters
-
-    def cost_grad_func(features, target, parameters):
-        """
-        cost function differentiated w.r.t parameters
-        """
-        return -2*features.T @ (target - features @ parameters)
-    config = SGDConfig(0.0001, 0, 100, input.shape[0], 2023)
+    config = SGDConfig(1e-4, 0, 1, input.shape[0], 2023)
     optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(1000, 1e-10)
+    best_parameters = optimizer(100_000, 1e-8)
     print(f"{best_parameters=}")
     model = features @ best_parameters
+    gd_mse = mean_squared_error(target, model)
+    print(f"{gd_mse=:.4g}")
+    
+    plt.scatter(input,target, c='black', s=10, label="data")
+    plt.scatter(input, model, c='blue', s=1, label="model")
+    plt.xlabel(r"$x$")
+    plt.ylabel(r"$y$")
+    plt.legend()
+    plt.show()
+
+def gdm_optimize():
+    print("gradient descent with momentum")
+    rng = np.random.default_rng(2023)
+    input = rng.random(50)
+    degree = 5
+    #input = np.linspace(-10,10,50)
+    poly_coeffs =10*rng.random(degree + 1)
+    print(f"{poly_coeffs=}")
+    poly  = np.polynomial.Polynomial(poly_coeffs)
+    noise = rng.normal(50) 
+    target = poly(input) + noise
+    features = poly_features(input, degree)
+    init_parameters = 10*rng.random(degree + 1)
+    print(f"{init_parameters=}")
+    model = features @ init_parameters
+    config = SGDConfig(1e-4, 0.9, 1, input.shape[0], 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(100_000, 1e-8)
+    print(f"{best_parameters=}")
+    model = features @ best_parameters
+    gd_mse = mean_squared_error(target, model)
+    print(f"{gd_mse=:.4g}")
+    
     plt.scatter(input,target, c='black', s=10, label="data")
     plt.scatter(input, model, c='blue', s=1, label="model")
     plt.xlabel(r"$x$")
@@ -64,11 +251,40 @@ def optimize_polynomial_with_sgd():
     plt.show()
 
 
+def sgd_optimize():
+    print("stochastic gradient descent")
+    rng = np.random.default_rng(2023)
+    input = rng.random(50)
+    degree = 5
+    #input = np.linspace(-10,10,50)
+    poly_coeffs =10*rng.random(degree + 1)
+    print(f"{poly_coeffs=}")
+    poly  = np.polynomial.Polynomial(poly_coeffs)
+    noise = rng.normal(50) 
+    target = poly(input) + noise
+    features = poly_features(input, degree)
+    init_parameters = 10*rng.random(degree + 1)
+    print(f"{init_parameters=}")
+    model = features @ init_parameters
+    config = SGDConfig(1e-4, 0.9, int(target.shape[0]/32),  32, 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(100_000, 1e-8)
+    print(f"{best_parameters=}")
+    model = features @ best_parameters
+    gd_mse = mean_squared_error(target, model)
+    print(f"{gd_mse=:.4g}")
+    
+    plt.scatter(input,target, c='black', s=10, label="data")
+    plt.scatter(input, model, c='blue', s=1, label="model")
+    plt.xlabel(r"$x$")
+    plt.ylabel(r"$y$")
+    plt.legend()
+    plt.show()
 
-
-
-
-optimize_polynomial_with_sgd()
+# if __name__ == "__main__":
+#     gd_optimize()
+#     gdm_optimize()
+#     sgd_optimize()
 
 
 
