@@ -5,7 +5,7 @@ import numpy as np
 class SGD_const:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
-                init_lr, batch_size, random_state=2023):
+                init_lr, batch_size, momentum = 0.0, random_state=2023):
         self.X_full = X_data
         self.Y_full = Y_data
         self.gradient = gradient_func
@@ -15,7 +15,6 @@ class SGD_const:
         self.batch_size = batch_size
         self.n_iterations = self.n_inputs // batch_size
         self.n_parameters = len(init_model_parameters)
-
         # Initialize random state
         self.random_state = random_state
         self.rng = np.random.RandomState(random_state)
@@ -38,7 +37,7 @@ class SGD_const:
 
         return model_parameters
 
-class SDG_AdaGrad:
+class SGD_AdaGrad:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size, momentum=0.0,
@@ -89,7 +88,7 @@ class SDG_AdaGrad:
 
         return model_parameters
 
-class SDG_RMSProp:
+class SGD_RMSProp:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
@@ -142,7 +141,7 @@ class SDG_RMSProp:
 
         return model_parameters
 
-class SDG_ADAM:
+class SGD_ADAM:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
