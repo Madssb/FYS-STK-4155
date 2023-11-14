@@ -144,7 +144,7 @@ class Adagrad:
         self.cost_grad_func = cost_grad_func  
         self.model_parameters_init = model_parameters_init 
         self.data_indices = np.arange(target.shape[0])  
-        self.small_const = 1e-8
+        self.small_const = 1e-12
 
     def average_gradient(self, model_parameters: np.ndarray):
         """
@@ -164,14 +164,19 @@ class Adagrad:
         return avg_gradient
 
     def __call__(self, n_iterations_max: int, tolerance: float):
+        last_20_param_updates = np.ones(20)
         parameters = self.model_parameters_init
         cumulative_squared_gradient = np.zeros_like(self.model_parameters_init)
-        for iterations in range(n_iterations_max):
+        for iteration in range(n_iterations_max):
             avg_gradient = self.average_gradient(parameters)
             cumulative_squared_gradient += avg_gradient*avg_gradient
             parameters_update = (self.small_const * cumulative_squared_gradient)/(self.small_const + np.sqrt(cumulative_squared_gradient))
             parameters += parameters_update
-            if np.linalg.norm(parameters_update) < tolerance:
+            last_20_param_updates[iteration % 20] = np.linalg.norm(parameters_update)
+            print(f"iteration {iteration}, grad norm: {np.linalg.norm(parameters_update):.4g}")
+            if np.linalg.norm(parameters_update)< tolerance:
+                break
+            if np.mean(last_20_param_updates) < tolerance:
                 break
         return parameters
 

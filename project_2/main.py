@@ -101,8 +101,8 @@ def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndar
 rng = np.random.default_rng(2023)
 x = rng.random(50)
 y = rng.random(50)
-# x = np.linspace(0,1,50)
-# y = np.linspace(0,1,50)
+x = np.linspace(0,1,50)
+y = np.linspace(0,1,50)
 x_mesh, y_mesh = np.meshgrid(x, y)
 noise = rng.normal(size=(50,50))*0.1
 target_mesh = franke_function(x_mesh, y_mesh) + noise
@@ -127,18 +127,27 @@ model_mesh = model.reshape(target_mesh.shape)
 # ax.set_zlabel('Z-axis')
 # plt.title('3D Surface Plot of a 2D Polynomial')
 # plt.show()
+config = SGDConfig(1e-3, None, 1, target.shape[0], 2023)
+init_parameters = np.ones(n_parameters)
+adagrad_optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
+optimized_parameters = adagrad_optimizer(10_000,1e-8)
+model = features @ optimized_parameters
+model_mesh = model.reshape(target_mesh.shape)
+# # Create a 3D surface plot
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot_surface(x_mesh, y_mesh, target_mesh, cmap='viridis')
+# ax.plot_surface(x_mesh, y_mesh, model_mesh, cmap='gnuplot')
 
-# learning_rate = 1e-4
-# momentum = 0.9
-# max_iter = 10_000
-# tolerance = 5e-5
-# config = SGDConfig(1e-4, None, target.shape[0]//64, 64, 2023)
-# adagrad_optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
-# optimized_parameters = adagrad_optimizer(10_000,1e-5)
-# model = features @ optimized_parameters
-# adagrad_mse = mean_squared_error(target, model)
-# print(f"AdaGrad MSE: {adagrad_mse:.4g}")
-# quit()
+# # Add labels and title
+# ax.set_xlabel('X-axis')
+# ax.set_ylabel('Y-axis')
+# ax.set_zlabel('Z-axis')
+# plt.title('3D Surface Plot of a 2D Polynomial')
+# plt.show()
+adagrad_mse = mean_squared_error(target, model)
+print(f"AdaGrad MSE: {adagrad_mse:.4g}")
+quit()
 
 
 
