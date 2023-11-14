@@ -53,6 +53,8 @@ def accuracy_score(target, prediction):
     assert len(prediction) == n, "Not the same number of predictions as targets"
     return np.sum(indicator(target, prediction))/n
 
+def MSE(target, prediction):
+    return np.mean((target - prediction)**2)
 
 class FeedForwardNeuralNetwork:
 
@@ -60,7 +62,7 @@ class FeedForwardNeuralNetwork:
     Feed Forward Neural Network
     """
 
-    def __init__(self, X_data, Y_data, 
+    def __init__(self, X_data, Y_data,
                n_hidden_layers: int,
                n_hidden_neurons: int,
                output_activation_function: callable, 
@@ -98,7 +100,8 @@ class FeedForwardNeuralNetwork:
             raise TypeError("hidden_activation_function must be a callable function.")
         if not callable(hidden_activation_derivative):
             raise TypeError("hidden_activation_derivative must be a callable function.")
-        
+            
+
         # Initialize random state
         self.random_state = random_state
         self.rng = np.random.RandomState(random_state)
@@ -113,6 +116,7 @@ class FeedForwardNeuralNetwork:
         self.hidden_activation_function = hidden_activation_function
         self.hidden_activation_derivative = hidden_activation_derivative
         self.L2 = L2
+
         # Initialize instance weights and biases
         self.initialize_weights_and_biases()
     
@@ -175,13 +179,12 @@ class FeedForwardNeuralNetwork:
     
         return a_output
     
-    def predict(self, X, problem='Classification'):
+    def predict(self, X):
         a_output = self.feed_forward_pass_out(X)
-        assert problem=='Classification' or problem=='Regression', "Must be a 'Classification' or 'Regression' problem"
-        if problem=='Classification':
-            return hard_classifier(a_output)
-        else:
+        if self.output_activation_function==identity:
             return a_output
+        else:
+            return hard_classifier(a_output)
 
     def back_propagation(self, X, Y, model_parameters):
         batch_size, n_features = np.shape(X)
@@ -198,7 +201,7 @@ class FeedForwardNeuralNetwork:
         
         error_output = np.expand_dims(error_output,1) # Broadcast the vector to allow matrix multiplication
         output_weights = np.expand_dims(self.output_weights,1) # Broadcast the vector to allow matrix multiplication
-        
+
         error_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
         error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.z_hidden[:,:,-1])
 
@@ -256,10 +259,11 @@ class FeedForwardNeuralNetwork:
             self.history.append(performance)
 
 # Import data
-
+"""
 import pandas as pd 
 
 data = pd.read_csv('data.csv')
+"""
 """
 The data file contains the following columns: 
 ['id', 'diagnosis', 'radius_mean', 'texture_mean', 'perimeter_mean', 
@@ -276,7 +280,7 @@ The id should not be relevant for the prediction.
 I therefore drop these columns.
 The diagnosis corresponds to the target values.
 """
-
+"""
 diagnosis = data['diagnosis']
 diagnosis_int = (diagnosis == 'M')*1
 predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
@@ -335,3 +339,4 @@ ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
 plt.savefig('figures/nn_classification/test_accuracy_class.pdf')
 plt.savefig('figures/nn_classification/test_accuracy_class.png')
+"""
