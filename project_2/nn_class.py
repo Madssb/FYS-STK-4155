@@ -2,6 +2,8 @@ import numpy as np
 from random import random, seed
 np.random.seed(2023)
 
+from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
+
 # Activation function
 #class sigmoid:
 #    def __init__(self):
@@ -28,6 +30,12 @@ def leaky_ReLU(x):
 
 def leaky_ReLU_derivative(x, alpha=0.01):
     return np.where(x>0, 1, alpha)
+
+def identity(x):
+    return x
+
+def identity_derivative(x):
+    return 1
 
 # Accuracy score functions for classification
 
@@ -58,7 +66,7 @@ class FeedForwardNeuralNetwork:
                output_activation_function: callable, 
                hidden_activation_function: object,
                hidden_activation_derivative: callable,
-               eta=0.1, lmbd=0.01, batch_size=100, n_epochs=10, momentum=0):
+               L2 = 0.0, random_state=2023):
         """Constructor
 
         Parameters
@@ -90,6 +98,11 @@ class FeedForwardNeuralNetwork:
             raise TypeError("hidden_activation_function must be a callable function.")
         if not callable(hidden_activation_derivative):
             raise TypeError("hidden_activation_derivative must be a callable function.")
+        
+        # Initialize random state
+        self.random_state = random_state
+        self.rng = np.random.RandomState(random_state)
+        
         # Initialize instance variables
         self.X_full = X_data
         self.Y_full = Y_data
@@ -99,29 +112,18 @@ class FeedForwardNeuralNetwork:
         self.output_activation_function = output_activation_function
         self.hidden_activation_function = hidden_activation_function
         self.hidden_activation_derivative = hidden_activation_derivative
-
+        self.L2 = L2
         # Initialize instance weights and biases
         self.initialize_weights_and_biases()
-
-        # Initialize optimization parameters
-        self.eta = eta
-        self.lmbd = lmbd
-        self.momentum = momentum
-        self.batch_size = batch_size
-        self.n_epochs = n_epochs
-        self.n_iterations = self.n_inputs // batch_size
     
     def initialize_weights_and_biases(self):
-        
-        # Fix random seed
-        np.random.seed(2023)
         
         """
         Initialize hidden weights and output weights using
         a normal distribution with mean=0 and standard deviation=1
         """
-        hidden_weights = np.random.normal(0, 1, (self.n_features, self.n_hidden_neurons))
-        output_weights = np.random.normal(0, 1, self.n_hidden_neurons)
+        hidden_weights = self.rng.normal(0, 1, (self.n_features, self.n_hidden_neurons))
+        output_weights = self.rng.normal(0, 1, self.n_hidden_neurons)
 
         """
         Initialize hidden bias and output bias using a small number (0.01)
@@ -135,17 +137,17 @@ class FeedForwardNeuralNetwork:
         self.output_bias = output_bias
 
         if self.n_hidden_layers > 1: 
-            HIDDEN_weights = np.random.normal(0, 1, (self.n_hidden_neurons, self.n_hidden_neurons, self.n_hidden_layers-1))
+            HIDDEN_weights = self.rng.normal(0, 1, (self.n_hidden_neurons, self.n_hidden_neurons, self.n_hidden_layers-1))
             HIDDEN_bias = np.zeros((self.n_hidden_neurons, self.n_hidden_layers-1)) + 0.01
             self.HIDDEN_weights = HIDDEN_weights
             self.HIDDEN_bias = HIDDEN_bias
 
-    def feed_forward_pass(self):
+    def feed_forward_pass(self, X):
+        batch_size, n_features = np.shape(X)
+        self.z_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
+        self.a_hidden = np.zeros((batch_size, self. n_hidden_neurons, self.n_hidden_layers))
 
-        self.z_hidden = np.zeros((self.batch_size, self.n_hidden_neurons, self.n_hidden_layers))
-        self.a_hidden = np.zeros((self.batch_size, self. n_hidden_neurons, self.n_hidden_layers))
-
-        self.z_hidden[:,:,0] = self.X @ self.hidden_weights + self.hidden_bias
+        self.z_hidden[:,:,0] = X @ self.hidden_weights + self.hidden_bias
         self.a_hidden[:,:,0] = self.hidden_activation_function(self.z_hidden[:,:,0])
         if self.n_hidden_layers > 1: 
             for l in range(1,self.n_hidden_layers):
@@ -156,7 +158,7 @@ class FeedForwardNeuralNetwork:
         
         self.z_output = self.a_hidden[:,:,-1] @ self.output_weights + self.output_bias
         self.a_output = self.output_activation_function(self.z_output)
-    
+
     def feed_forward_pass_out(self, X):
         n_inputs, n_features = np.shape(X)
         z_hidden = np.zeros((n_inputs, self.n_hidden_neurons, self.n_hidden_layers))
@@ -173,18 +175,31 @@ class FeedForwardNeuralNetwork:
     
         return a_output
     
-    def back_propagation(self):
-    
-        self.feed_forward_pass()
+    def predict(self, X, problem='Classification'):
+        a_output = self.feed_forward_pass_out(X)
+        assert problem=='Classification' or problem=='Regression', "Must be a 'Classification' or 'Regression' problem"
+        if problem=='Classification':
+            return hard_classifier(a_output)
+        else:
+            return a_output
+
+    def back_propagation(self, X, Y, model_parameters):
+        batch_size, n_features = np.shape(X)
+        if self.n_hidden_layers > 1:
+            [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias] = model_parameters
+        else:
+            [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias] = model_parameters
         
-        error_output = self.a_output - self.Y
+        self.feed_forward_pass(X)
+        
+        error_output = self.a_output - Y
         self.output_weights_gradient = self.a_hidden[:,:,-1].T @ error_output
         self.output_bias_gradient = np.sum(error_output)
         
         error_output = np.expand_dims(error_output,1) # Broadcast the vector to allow matrix multiplication
         output_weights = np.expand_dims(self.output_weights,1) # Broadcast the vector to allow matrix multiplication
         
-        error_hidden = np.zeros((self.batch_size, self.n_hidden_neurons, self.n_hidden_layers))
+        error_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
         error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.z_hidden[:,:,-1])
 
         if self.n_hidden_layers > 1: 
@@ -199,49 +214,46 @@ class FeedForwardNeuralNetwork:
                 self.HIDDEN_bias_gradient[:,l-1] = np.sum(error_hidden[:,:,l], axis=0)
             error_hidden[:,:,0] = error_hidden[:,:,1] @ self.HIDDEN_weights[:,:,0].T * self.hidden_activation_derivative(self.z_hidden[:,:,0])
         
-        self.hidden_weights_gradient = self.X.T @ error_hidden[:,:,0]
+        self.hidden_weights_gradient = X.T @ error_hidden[:,:,0]
         self.hidden_bias_gradient = np.sum(error_hidden[:,:,0], axis=0)
+        
+        # Regularization term
+        self.output_weights_gradient += self.L2 * self.output_weights
+        self.hidden_weights_gradient += self.L2 * self.hidden_weights
+        if self.n_hidden_layers > 1:
+            self.HIDDEN_weights_gradient += self.L2*self.HIDDEN_weights_gradient
 
-    def train_network(self):
+        if self.n_hidden_layers > 1:
+            return [self.output_weights_gradient, self.output_bias_gradient, self.hidden_weights_gradient, self.hidden_bias_gradient, self.HIDDEN_weights_gradient, self.HIDDEN_bias_gradient]
+        else:
+            return [self.output_weights_gradient, self.output_bias_gradient, self.hidden_weights_gradient, self.hidden_bias_gradient]
+    
+
+    def train(self, optimizer, evaluation_func: callable, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0):
         
-        np.random.seed(2023)
+        self.n_epochs = n_epochs
+        if self.n_hidden_layers > 1:
+            model_parameters = [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias]
+        else:
+            model_parameters = [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias]
         
-        data_indices = np.arange(self.n_inputs)
+        # Build optimizer
+        optimizer = optimizer(self.X_full, self.Y_full, 
+                              gradient_func=self.back_propagation, 
+                              init_model_parameters=model_parameters,
+                              init_lr = init_lr, batch_size=batch_size,
+                              momentum = momentum,random_state=self.random_state)
+
+        self.history = []
 
         for i in range(self.n_epochs):
-            for j in range(self.n_iterations):
-                # pick datapoints with replacement
-                batch_datapoints = np.random.choice(data_indices, size=self.batch_size, replace=False)
-                
-                # set up minibatch with training data
-                self.X = self.X_full[batch_datapoints]
-                self.Y = self.Y_full[batch_datapoints]
-
-                # update gradients
-                self.back_propagation()
-            
-                # regularization term gradients
-                self.output_weights_gradient += self.lmbd * self.output_weights
-                self.hidden_weights_gradient += self.lmbd * self.hidden_weights
-
-                # update weights and biases
-                # here I use a fixed learning rate with the possibility to apply momentum
-                self.output_weights -= self.eta * self.output_weights_gradient 
-                self.output_bias -= self.eta * self.output_bias_gradient 
-                self.hidden_weights -= self.eta * self.hidden_weights_gradient 
-                self.hidden_bias -= self.eta * self.hidden_bias_gradient
-                if self.n_hidden_layers > 1:
-                    self.HIDDEN_weights_gradient += self.lmbd * self.HIDDEN_weights
-                    self.HIDDEN_weights -= self.eta * self.HIDDEN_weights_gradient
-                    self.HIDDEN_bias -= self.eta * self.HIDDEN_bias_gradient
-
-    def predict(self, X, problem='Classification'):
-        a_output = self.feed_forward_pass_out(X)
-        assert problem=='Classification' or problem=='Regression', "Must be a 'Classification' or 'Regression' problem"
-        if problem=='Classification':
-            return hard_classifier(a_output)
-        else:
-            return a_output
+            model_parameters = optimizer.advance(model_parameters)
+            if self.n_hidden_layers > 1:
+                [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias] = model_parameters
+            else:
+                [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias] = model_parameters
+            performance = evaluation_func(self.Y_full, self.predict(self.X_full))
+            self.history.append(performance)
 
 # Import data
 
@@ -272,10 +284,17 @@ predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
 X = np.array(predictors)
 target = np.array(diagnosis_int)
 
-
 #Shuffle and split into training and test data
 from sklearn.model_selection import train_test_split
 X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.5)
+
+instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
+                            output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
+instance.train(SGD_AdaGrad, evaluation_func=accuracy_score, n_epochs=50, batch_size=100, init_lr=0.01)
+import matplotlib.pyplot as plt
+plt.plot(np.arange(instance.n_epochs), instance.history)
+plt.show()
+
 
 # Explore parameter space
 etas = np.logspace(-5,1,7)
@@ -286,10 +305,9 @@ test_accuracy = np.zeros((len(etas), len(lmbds)))
 for i, eta in enumerate(etas):
     for j, lmbd in enumerate(lmbds):
 
-        instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=1, n_hidden_neurons=50, 
-                            output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative,
-                            eta=eta, lmbd=lmbd, batch_size=100, n_epochs=50)
-        instance.train_network()
+        instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=100, L2=lmbd,
+                            output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
+        instance.train(SGD_ADAM, evaluation_func=accuracy_score, n_epochs=50, batch_size=100, init_lr=eta)
 
         train_accuracy[i, j] = accuracy_score(target_train, instance.predict(X_train)) 
         test_accuracy[i, j] = accuracy_score(target_test, instance.predict(X_test))
@@ -306,8 +324,8 @@ sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Training Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/train_accuracy_ReLU.pdf')
-plt.savefig('figures/nn_classification/train_accuracy_ReLU.png')
+plt.savefig('figures/nn_classification/train_accuracy_class.pdf')
+plt.savefig('figures/nn_classification/train_accuracy_class.png')
 
 sns.set()
 fig, ax = plt.subplots(figsize = (10, 10))
@@ -315,5 +333,5 @@ sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
 ax.set_title("Test Accuracy")
 ax.set_ylabel("$\eta$")
 ax.set_xlabel("$\lambda$")
-plt.savefig('figures/nn_classification/test_accuracy_ReLU.pdf')
-plt.savefig('figures/nn_classification/test_accuracy_ReLU.png')
+plt.savefig('figures/nn_classification/test_accuracy_class.pdf')
+plt.savefig('figures/nn_classification/test_accuracy_class.png')
