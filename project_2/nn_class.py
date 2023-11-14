@@ -279,7 +279,18 @@ if __name__ == '__main__':
     The column 'Unnamed: 32' only contains NaN values. 
     The id should not be relevant for the prediction. 
     I therefore drop these columns.
-    The diagnmodel_selection import train_test_split
+    The diagnosis corresponds to the target values.
+    """
+
+    diagnosis = data['diagnosis']
+    diagnosis_int = (diagnosis == 'M')*1
+    predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
+
+    X = np.array(predictors)
+    target = np.array(diagnosis_int)
+
+    #Shuffle and split into training and test data
+    from sklearn.model_selection import train_test_split
     X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.5)
 
     instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
@@ -291,18 +302,7 @@ if __name__ == '__main__':
 
 
     # Explore parameter space
-    etas = np.logsosis corresponds to the target values.
-    """
-
-    diagnosis = data['diagnosis']
-    diagnosis_int = (diagnosis == 'M')*1
-    predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
-
-    X = np.array(predictors)
-    target = np.array(diagnosis_int)
-
-    #Shuffle and split into training and test data
-    # from sklearn.pace(-5,1,7)
+    etas = np.logspace(-5,1,7)
     lmbds = np.logspace(-5,1,7)
     train_accuracy = np.zeros((len(etas), len(lmbds)))
     test_accuracy = np.zeros((len(etas), len(lmbds)))
