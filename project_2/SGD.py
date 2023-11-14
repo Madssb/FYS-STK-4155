@@ -38,7 +38,7 @@ class SGD_const:
 
         return model_parameters
 
-class SDG_AdaGrad:
+class SGD_AdaGrad:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size, momentum=0.0,
@@ -89,7 +89,7 @@ class SDG_AdaGrad:
 
         return model_parameters
 
-class SDG_RMSProp:
+class SGD_RMSProp:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
@@ -142,7 +142,7 @@ class SDG_RMSProp:
 
         return model_parameters
 
-class SDG_ADAM:
+class SGD_ADAM:
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
