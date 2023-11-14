@@ -6,7 +6,7 @@ from SGD import SGD_const, SDG_AdaGrad, SDG_RMSProp, SDG_ADAM
 class LogisticRegression:
 
     def __init__(self, X_data, Y_data,
-                  L2 = 0.01, random_state=2023):
+                  L2 = 0.0, random_state=2023):
         # Initialize random state
         self.random_state = random_state
         self.rng = np.random.RandomState(random_state)
@@ -64,7 +64,7 @@ class LogisticRegression:
         self.bias_gradient = np.sum(error)
 
         # Regularization term
-        self.weights_gradient += 2 * self.L2 * self.weights
+        self.weights_gradient += self.L2 * self.weights
 
         return [self.weights_gradient, self.bias_gradient]
     
