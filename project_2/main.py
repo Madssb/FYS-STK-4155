@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax import grad
 import warnings
 from ffnn import FeedForwardNeuralNetwork
-from gradient_descents import StochasticGradientDescent, SGDConfig, Adagrad, RMSProp, ADAM
+from gradient_descents import *
 from activation_functions import sigmoid
 from loss_functions import mean_squared_error
 
@@ -118,60 +118,94 @@ def generate_data_and_init_parameters():
     return features, target, init_parameters
 
 def gradient_descent():
-    """Test Gradient Descent
+    """Apply GD on model for Franke data with noise, with tuned learning rate.
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(learning_rate, 0, 1, target.shape[0], 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = GradientDescent(config, 10e-6, 0)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
+    best_model = features @ optimized_parameters
     mse_gd = mean_squared_error(target, best_model)
     print(optimizer)
     print(f"MSE: {mse_gd:.4g}")
 
 def gradient_descent_with_momentum():
-    """Test Gradient Descent with Momentum
+    """Apply DGM on model for Franke data with noise, with tuned learning rate.
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(learning_rate, momentum, 1, target.shape[0], 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = GradientDescent(config, 0.81e-6, 0.9)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
+    best_model = features @ optimized_parameters
+    mse_gd = mean_squared_error(target, best_model)
+    print(optimizer)
+    print(f"MSE: {mse_gd:.4g}")
+
+def stochastic_gradient_descent():
+    """apply SGD on model for Franke data with noise, with tuned learning rate
+    """
+    features, target, init_parameters = generate_data_and_init_parameters()
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = StochasticGradientDescent(config, 7e-6, 0, target.shape[0]//64, 64)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
+    best_model = features @ optimized_parameters
     mse_gdm = mean_squared_error(target, best_model)
     print(optimizer)
     print(f"MSE: {mse_gdm:.4g}")
 
-def stochastic_gradient_descent():
-    """Test Stochastic Gradient Descent
+
+def stochastic_gradient_descent_varying_minibatch_size():
+    """apply SGD as specified in `stochastic_gradient_descent` with varying
+    mini bath sizes.
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(learning_rate, 0, int(target.shape[0]/64),  64, 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
-    mse_gdm = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gdm:.4g}")  
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    mini_batch_sizes = [1,2,4,8,16,32,64,128]
+    for mini_batch_size in mini_batch_sizes:
+        optimizer = StochasticGradientDescent(config, 7e-6, 0, target.shape[0]//mini_batch_size, mini_batch_size)
+        def meta_mse(parameters):
+            model = features @ parameters
+            return mean_squared_error(target, model)
+        optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
+        best_model = features @ optimized_parameters
+        mse_gdm = mean_squared_error(target, best_model)
+        print(optimizer)
+        print(f"MSE: {mse_gdm:.4g}")
 
 def stochastic_gradient_descent_with_momentum():
     """Test Stochastic Gradient Descent
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(learning_rate, 0.9, int(target.shape[0]/64),  64, 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = StochasticGradientDescent(config, 0.86e-6, 0.9, target.shape[0]//64, 64)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
+    best_model = features @ optimized_parameters
     mse_gdm = mean_squared_error(target, best_model)
     print(optimizer)
-    print(f"MSE: {mse_gdm:.4g}")  
+    print(f"MSE: {mse_gdm:.4g}")
 
 def adagrad():
     """Test adagrad
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(0.1, None, 1, target.shape[0], 2023)
-    optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
-    optimized_parameters = optimizer(10_000,1e-5)
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = Adagrad(config, 0.06, 64)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
     model = features @ optimized_parameters
     adagrad_mse = mean_squared_error(target, model)
     print(optimizer)
@@ -182,36 +216,43 @@ def rmsprop():
     """Test RMSProp
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(0.1, None, 1, target.shape[0], 2023)
-    optimizer = RMSProp(config, features, target, cost_grad_func, init_parameters)
-    optimized_parameters = optimizer(10_000,1e-5)
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = RMSProp(config, 900e-6, 64, 0.99982)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
     model = features @ optimized_parameters
-    rmsprop_mse = mean_squared_error(target, model)
+    adagrad_mse = mean_squared_error(target, model)
     print(optimizer)
-    print(f"MSE: {rmsprop_mse:.4g}")
+    print(f"MSE: {adagrad_mse:.4g}")
 
 def adam():
     """
     Test ADAM
     """
     features, target, init_parameters = generate_data_and_init_parameters()
-    config = SGDConfig(0.1, None, 1, target.shape[0], 2023)
-    optimizer = ADAM(config, features, target, cost_grad_func, init_parameters)
-    optimized_parameters = optimizer(10_000,1e-5)
+    config = SystemConfig(features, target, cost_grad_func, init_parameters, 2023)
+    optimizer = ADAM(config, 1.64e-2, 64)
+    def meta_mse(parameters):
+        model = features @ parameters
+        return mean_squared_error(target, model)
+    optimized_parameters = optimizer(10_000, meta_mse=meta_mse)
     model = features @ optimized_parameters
-    rmsprop_mse = mean_squared_error(target, model)
+    adagrad_mse = mean_squared_error(target, model)
     print(optimizer)
-    print(f"MSE: {rmsprop_mse:.4g}")   
+    print(f"MSE: {adagrad_mse:.4g}")
 
 
 if __name__ == "__main__":
-    gradient_descent()
-    gradient_descent_with_momentum()
-    stochastic_gradient_descent()
-    stochastic_gradient_descent_with_momentum
-    adagrad()
-    rmsprop()
-    adam()
+    # gradient_descent()
+    # gradient_descent_with_momentum()
+    # stochastic_gradient_descent()
+    stochastic_gradient_descent_varying_minibatch_size()
+    # stochastic_gradient_descent_with_momentum()
+    # adagrad()
+    # rmsprop()
+    # adam()
 
 
 

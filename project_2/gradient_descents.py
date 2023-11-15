@@ -22,6 +22,31 @@ class SGDConfig:
         self.mini_batch_size = mini_batch_size
         self.random_seed = random_seed
 
+class SystemConfig:
+    """Define optimization problem
+    Attributes
+    ----------
+    features: np.ndarray
+        Inputs.
+    target: np.ndarray
+        Targets.
+    cost_grad_func: callable
+        Gradient of the cost function w.r.t parameters. Must take arguments 
+        `features`, `target`, `model_parameters`.
+    model_parameters_init: np.ndarray
+        Initial model parameters.
+    random_seed: int
+        seed for random number generator.
+    """
+    def __init__(self, features: np.ndarray, target: np.ndarray, 
+                 cost_grad_func: callable, model_parameters_init: np.ndarray,
+                 random_seed: int):
+        self.features = features
+        self.target = target
+        self.cost_grad_func = cost_grad_func
+        self.model_parameters_init = model_parameters_init
+        self.random_seed = random_seed
+
 class StochasticGradientDescent:
     """
     Stochastic Gradient Descent.
@@ -53,20 +78,25 @@ class StochasticGradientDescent:
         Data indices.
     """
 
-    def __init__(self, config: SGDConfig, features: np.ndarray, 
-                 target: np.ndarray, cost_grad_func: callable, 
-                 model_parameters_init: np.ndarray):
-        self.learning_rate = config.learning_rate
-        self.momentum_parameter = config.momentum_parameter
-        self.n_mini_batches = config.n_mini_batches
-        self.mini_batch_size = config.mini_batch_size
+    def __init__(self, config: SystemConfig, learning_rate: float,
+                 momentum_parameter: float, n_mini_batches: int,
+                 mini_batch_size: int, 
+                 ):
+        self.learning_rate = learning_rate
+        self.momentum_parameter = momentum_parameter
+        self.n_mini_batches = n_mini_batches
+        self.mini_batch_size = mini_batch_size
         self.rng = np.random.default_rng(config.random_seed)
-        self.features = features
-        self.target = target
-        self.cost_grad_func = cost_grad_func
-        self.model_parameters_init = model_parameters_init
-        self.data_indices = np.arange(target.shape[0])
+        self.features = config.features
+        self.target = config.target
+        self.cost_grad_func = config.cost_grad_func
+        self.model_parameters_init = config.model_parameters_init
+        self.data_indices = np.arange(self.target.shape[0])
         self.convergence_status = "optimizer not yet called"
+        self.convergence_criterion = lambda parameters: None
+
+    def convergence_criterion(self, meta_loss_function, tolerance):
+        return meta_loss_function() < tolerance
 
     def average_gradient(self, model_parameters: np.ndarray):
         """Compute average gradient for `n_minibatches` number of minibatches
@@ -84,7 +114,8 @@ class StochasticGradientDescent:
                                                 model_parameters)
         return avg_gradient
     
-    def __call__(self, n_iterations_max: int, tolerance: float):
+    def __call__(self, n_iterations_max: int, convergence_treshold: float=1e-3,
+                 divergence_treshold: float=1e3, meta_mse: callable=None):
         """Advance estiamte for optimal parameters until convergence is reached or
         `n_iterations_max` number of iterations exceeded.
         """
@@ -92,10 +123,21 @@ class StochasticGradientDescent:
         momentum = np.zeros_like(parameters)
         converged = False
         for iteration in range(1,n_iterations_max+1):
-            momentum = self.momentum_parameter*momentum + self.average_gradient(parameters) * self.learning_rate
+            momentum = self.momentum_parameter*momentum + self.average_gradient(parameters) * self.learning_rate      
+            if np.linalg.norm(momentum) > divergence_treshold:
+                raise ValueError(f"Parameters update diverged")
             parameters = parameters - momentum
-            if np.linalg.norm(momentum) < tolerance:
-                self.convergence_status = f"{self.__class__.__name__} converged at {iteration} iterations."
+            try:
+                if meta_mse(parameters) < convergence_treshold:
+                    self.convergence_status = f"""{self.__class__.__name__} converged at {iteration} iterations.
+Convergence criterion: mse < {convergence_treshold:.4g}"""
+                    converged = True
+                    break
+            except TypeError:
+                pass  
+            if np.linalg.norm(momentum) < convergence_treshold:
+                self.convergence_status = f"""{self.__class__.__name__} converged at {iteration} iterations.
+Convergence criterion: momentum norm < {convergence_treshold}"""
                 converged = True
                 break
         if not converged:
@@ -110,26 +152,54 @@ Mini batch size: {self.mini_batch_size:.4g}
 # of Mini batches: {self.n_mini_batches}
 {self.convergence_status}"""
 
+class GradientDescent(StochasticGradientDescent):
+    """
+    Gradient Descent
+    """
+
+    def __init__(self, config: SystemConfig, learning_rate: float, 
+                 momentum_parameter: float, ):
+        n_data = config.target.shape[0]
+        super().__init__(config, learning_rate, momentum_parameter, 1,
+                         n_data)
+        
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Momentum parameter: {self.momentum_parameter:.4g}
+{self.convergence_status}"""
+
 
 class Adagrad(StochasticGradientDescent):
     """
     x
     """
-    def __init__(self, config: SGDConfig, features: np.ndarray, 
-                 target: np.ndarray, cost_grad_func: callable, 
-                 model_parameters_init: np.ndarray):
-        self.learning_rate = config.learning_rate
-        self.n_mini_batches = config.n_mini_batches
-        self.mini_batch_size = config.mini_batch_size
+    def __init__(self, config: SystemConfig, learning_rate: float,
+                 mini_batch_size: int, regularization: float=1e-8):
+        # self.learning_rate = learning_rate
+        # self.n_mini_batches = config.n_mini_batches
+        # self.mini_batch_size = config.mini_batch_size
+        # self.rng = np.random.default_rng(config.random_seed)
+        # self.features = features
+        # self.target = target
+        # self.cost_grad_func = cost_grad_func  
+        # self.model_parameters_init = model_parameters_init 
+        # self.data_indices = np.arange(target.shape[0])  
+        # self.small_const = 1e-8
+        self.learning_rate = learning_rate
+        self.n_mini_batches = int(config.target.shape[0]/mini_batch_size)
+        self.mini_batch_size = mini_batch_size
         self.rng = np.random.default_rng(config.random_seed)
-        self.features = features
-        self.target = target
-        self.cost_grad_func = cost_grad_func  
-        self.model_parameters_init = model_parameters_init 
-        self.data_indices = np.arange(target.shape[0])  
-        self.small_const = 1e-8
+        self.regularization = regularization
+        self.features = config.features
+        self.target = config.target
+        self.cost_grad_func = config.cost_grad_func
+        self.model_parameters_init = config.model_parameters_init
+        self.data_indices = np.arange(self.target.shape[0])
+        self.convergence_status = "optimizer not yet called"
 
-    def __call__(self, n_iterations_max: int, tolerance: float):
+    def __call__(self, n_iterations_max: int, convergence_treshold: float=1e-3,
+                 divergence_treshold=1e3, meta_mse: callable = None):
         """Advance estiamte for optimal parameters until convergence is reached or
         `n_iterations_max` number of iterations exceeded.
         """
@@ -139,9 +209,19 @@ class Adagrad(StochasticGradientDescent):
         for iteration in range(1,n_iterations_max+1):
             avg_gradient = self.average_gradient(parameters)
             cumulative_squared_gradient += avg_gradient * avg_gradient
-            parameters_update = -(self.learning_rate * avg_gradient)/(self.small_const + np.sqrt(cumulative_squared_gradient))
+            parameters_update = -(self.learning_rate * avg_gradient)/(self.regularization + np.sqrt(cumulative_squared_gradient))
+            if np.linalg.norm(parameters_update) > divergence_treshold:
+                raise ValueError(f"Parameters update diverged")
             parameters += parameters_update
-            if np.linalg.norm(parameters_update) < tolerance:
+            try:
+                if meta_mse(parameters) < convergence_treshold:
+                    self.convergence_status = f"""{self.__class__.__name__} converged at {iteration} iterations.
+Convergence criterion: mse < {convergence_treshold:.4g}"""
+                    converged = True
+                    break
+            except TypeError:
+                pass  
+            if np.linalg.norm(parameters_update) < convergence_treshold:
                 self.convergence_status = f"{self.__class__.__name__} converged at {iteration} iterations."
                 converged = True
                 break
@@ -153,27 +233,44 @@ class Adagrad(StochasticGradientDescent):
         return f"""{self.__class__.__name__}
 Learning rate: {self.learning_rate:.4g}
 Mini batch size: {self.mini_batch_size:.4g}
-Small constant: {self.small_const:.4g}
+Regularization constant: {self.regularization:.4g}
 # of Mini batches: {self.n_mini_batches}
 {self.convergence_status}"""
 
 class RMSProp(StochasticGradientDescent):   
-    def __init__(self, config: SGDConfig, features: np.ndarray, 
-                 target: np.ndarray, cost_grad_func: callable, 
-                 model_parameters_init: np.ndarray):
-        self.learning_rate = config.learning_rate
-        self.n_mini_batches = config.n_mini_batches
-        self.mini_batch_size = config.mini_batch_size
+    # def __init__(self, config: SGDConfig, features: np.ndarray, 
+    #              target: np.ndarray, cost_grad_func: callable, 
+    #              model_parameters_init: np.ndarray):
+    #     self.learning_rate = learning_rate
+    #     self.n_mini_batches = config.n_mini_batches
+    #     self.mini_batch_size = config.mini_batch_size
+    #     self.rng = np.random.default_rng(config.random_seed)
+    #     self.features = features
+    #     self.target = target
+    #     self.cost_grad_func = cost_grad_func  
+    #     self.model_parameters_init = model_parameters_init 
+    #     self.data_indices = np.arange(target.shape[0])  
+    #     self.decay_rate = 0.5
+    #     self.small_const = 1e-6
+    def __init__(self, config: SystemConfig, learning_rate: float,
+                 mini_batch_size: int, decay_rate: float, 
+                 regularization: float=1e-8,
+                 ):
+        self.learning_rate = learning_rate
+        self.n_mini_batches = int(config.target.shape[0]/mini_batch_size)
+        self.mini_batch_size = mini_batch_size
         self.rng = np.random.default_rng(config.random_seed)
-        self.features = features
-        self.target = target
-        self.cost_grad_func = cost_grad_func  
-        self.model_parameters_init = model_parameters_init 
-        self.data_indices = np.arange(target.shape[0])  
-        self.decay_rate = 0.5
-        self.small_const = 1e-6
+        self.decay_rate = decay_rate
+        self.regularization = regularization
+        self.features = config.features
+        self.target = config.target
+        self.cost_grad_func = config.cost_grad_func
+        self.model_parameters_init = config.model_parameters_init
+        self.data_indices = np.arange(self.target.shape[0])
+        self.convergence_status = "optimizer not yet called"
 
-    def __call__(self, n_iterations_max: int, tolerance: float):
+    def __call__(self, n_iterations_max: int, convergence_treshold: float=1e-3,
+                 divergence_treshold=1e3, meta_mse: callable = None):
         """Advance estiamte for optimal parameters until convergence is reached or
         `n_iterations_max` number of iterations exceeded.
         """
@@ -184,9 +281,19 @@ class RMSProp(StochasticGradientDescent):
             
             avg_gradient = self.average_gradient(parameters)
             cumulative_squared_gradient = self.decay_rate * cumulative_squared_gradient + (1 - self.decay_rate) * avg_gradient * avg_gradient
-            parameters_update = -(self.learning_rate * avg_gradient)/(self.small_const + np.sqrt(cumulative_squared_gradient))
+            parameters_update = -(self.learning_rate * avg_gradient)/(self.regularization + np.sqrt(cumulative_squared_gradient))
             parameters += parameters_update
-            if np.linalg.norm(parameters_update) < tolerance:
+            if np.linalg.norm(parameters_update) > divergence_treshold:
+                raise ValueError(f"Parameters update diverged")
+            try:
+                if meta_mse(parameters) < convergence_treshold:
+                    self.convergence_status = f"""{self.__class__.__name__} converged at {iteration} iterations.
+Convergence criterion: mse < {convergence_treshold:.4g}"""
+                    converged = True
+                    break
+            except TypeError:
+                pass  
+            if np.linalg.norm(parameters_update) < convergence_treshold:
                 self.convergence_status = f"{self.__class__.__name__} converged at {iteration} iterations."
                 converged = True
                 break
@@ -197,32 +304,52 @@ class RMSProp(StochasticGradientDescent):
     def __str__(self):
         return f"""{self.__class__.__name__}
 Learning rate: {self.learning_rate:.4g}
-Small constant: {self.small_const:.4g}
+Regularization constant: {self.regularization:.4g}
 Decay rate: {self.decay_rate:.4g}
 Mini batch size: {self.mini_batch_size:.4g}
 # of mini batches: {self.n_mini_batches}
 {self.convergence_status}"""
 
 class ADAM(StochasticGradientDescent):
-    def __init__(self, config: SGDConfig, features: np.ndarray, 
-                 target: np.ndarray, cost_grad_func: callable, 
-                 model_parameters_init: np.ndarray):
-        self.learning_rate = config.learning_rate
-        self.n_mini_batches = config.n_mini_batches
-        self.mini_batch_size = config.mini_batch_size
-        self.rng = np.random.default_rng(config.random_seed)
-        self.features = features
-        self.target = target
-        self.cost_grad_func = cost_grad_func  
-        self.model_parameters_init = model_parameters_init 
-        self.data_indices = np.arange(target.shape[0])  
-        self.small_const = 1e-6
-        # rho_1
-        self.momentum_decay_rate = 0.9
-        # rho_2
-        self.accumulated_decay_rate = 0.999
+    # def __init__(self, config: SGDConfig, features: np.ndarray, 
+    #              target: np.ndarray, cost_grad_func: callable, 
+    #              model_parameters_init: np.ndarray):
+    #     self.learning_rate = learning_rate
+    #     self.n_mini_batches = config.n_mini_batches
+    #     self.mini_batch_size = config.mini_batch_size
+    #     self.rng = np.random.default_rng(config.random_seed)
+    #     self.features = features
+    #     self.target = target
+    #     self.cost_grad_func = cost_grad_func  
+    #     self.model_parameters_init = model_parameters_init 
+    #     self.data_indices = np.arange(target.shape[0])  
+    #     self.small_const = 1e-6
+    #     # rho_1
+    #     self.momentum_decay_rate = 0.9
+    #     # rho_2
+    #     self.accumulated_decay_rate = 0.999
 
-    def __call__(self, n_iterations_max: int, tolerance: float):
+    def __init__(self, config: SystemConfig, learning_rate: float,
+                 mini_batch_size: int, momentum_decay_rate: float=0.9,
+                 accumulated_decay_rate: float=0.999,
+                 regularization: float=1e-8,
+                 ):
+        self.learning_rate = learning_rate
+        self.n_mini_batches = int(config.target.shape[0]/mini_batch_size)
+        self.mini_batch_size = mini_batch_size
+        self.rng = np.random.default_rng(config.random_seed)
+        self.momentum_decay_rate = momentum_decay_rate
+        self.accumulated_decay_rate = accumulated_decay_rate
+        self.regularization = regularization
+        self.features = config.features
+        self.target = config.target
+        self.cost_grad_func = config.cost_grad_func
+        self.model_parameters_init = config.model_parameters_init
+        self.data_indices = np.arange(self.target.shape[0])
+        self.convergence_status = "optimizer not yet called"
+
+    def __call__(self, n_iterations_max: int, convergence_treshold: float=1e-3,
+                 divergence_treshold=1e3, meta_mse: callable=None):
         """Advance estiamte for optimal parameters until convergence is reached or
         `n_iterations_max` number of iterations exceeded.
         """
@@ -238,9 +365,19 @@ class ADAM(StochasticGradientDescent):
             second_moment = self.accumulated_decay_rate * second_moment + (1 - self.accumulated_decay_rate)*avg_gradient*avg_gradient
             first_moment_corrected = first_moment / (1 - self.momentum_decay_rate**time_step)
             second_moment_corrected = second_moment / (1 - self.accumulated_decay_rate**time_step)
-            parameters_update = -self.learning_rate*first_moment_corrected/(np.sqrt(second_moment_corrected) + self.small_const)
+            parameters_update = -self.learning_rate*first_moment_corrected/(np.sqrt(second_moment_corrected) + self.regularization)
             parameters += parameters_update
-            if np.linalg.norm(parameters_update) < tolerance:
+            try:
+                if meta_mse(parameters) < convergence_treshold:
+                    self.convergence_status = f"""{self.__class__.__name__} converged at {iteration} iterations.
+Convergence criterion: mse < {convergence_treshold:.4g}"""
+                    converged = True
+                    break
+            except TypeError:
+                pass 
+            if np.linalg.norm(parameters_update) > divergence_treshold:
+                raise ValueError(f"Parameters update diverged")
+            if np.linalg.norm(parameters_update) < convergence_treshold:
                 self.convergence_status = f"{self.__class__.__name__} converged at {iteration} iterations."
                 converged = True
                 break
@@ -251,7 +388,7 @@ class ADAM(StochasticGradientDescent):
     def __str__(self):
         return f"""{self.__class__.__name__}
 Learning rate: {self.learning_rate:.4g}
-Small constant: {self.small_const:.4g}
+Regularization constant: {self.regularization:.4g}
 Momentum decay rate: {self.momentum_decay_rate:.4g}
 Accumulated decay rate: {self.accumulated_decay_rate:.4g}
 Mini batch size: {self.mini_batch_size:.4g}
