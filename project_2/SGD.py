@@ -15,11 +15,17 @@ class SGD_const:
         self.batch_size = batch_size
         self.n_iterations = self.n_inputs // batch_size
         self.n_parameters = len(init_model_parameters)
+
         # Initialize random state
         self.random_state = random_state
         self.rng = np.random.RandomState(random_state)
 
+        # Momentum
+        self.change = [0.0] * self.n_parameters
+        self.momentum = momentum
+
     def advance(self, model_parameters):
+        new_model_parameters = model_parameters.copy()
 
         for j in range(self.n_iterations):
             # pick datapoints with replacement
@@ -33,9 +39,11 @@ class SGD_const:
 
             # update model parameters, here using a fixed learning rate
             for i in range(self.n_parameters):
-                model_parameters[i] -= self.init_lr * parameter_gradients[i]
-
-        return model_parameters
+                update = self.init_lr * parameter_gradients[i] + self.change[i]*self.momentum
+                new_model_parameters[i] -= update
+                self.change[i] = update
+        
+        return new_model_parameters
 
 class SGD_AdaGrad:
     def __init__(self, X_data, Y_data, 
@@ -66,7 +74,7 @@ class SGD_AdaGrad:
 
     def advance(self, model_parameters):
         self.Giter = [0.0] * self.n_parameters
-        self.change = [0.0] * self.n_parameters
+        #self.change = [0.0] * self.n_parameters
 
         for j in range(self.n_iterations):
             # pick datapoints with replacement
