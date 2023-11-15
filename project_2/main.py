@@ -97,8 +97,6 @@ def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndar
                     col_count += 1
     return features_xy
 
-
-
 def generate_data_and_init_parameters():
     """Generate Franke Function mesh with noise
     """
@@ -146,7 +144,26 @@ def gradient_descent_with_momentum():
 def stochastic_gradient_descent():
     """Test Stochastic Gradient Descent
     """
-    
+    features, target, init_parameters = generate_data_and_init_parameters()
+    config = SGDConfig(learning_rate, 0, int(target.shape[0]/64),  64, 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gdm = mean_squared_error(target, best_model)
+    print(optimizer)
+    print(f"MSE: {mse_gdm:.4g}")  
+
+def stochastic_gradient_descent_with_momentum():
+    """Test Stochastic Gradient Descent
+    """
+    features, target, init_parameters = generate_data_and_init_parameters()
+    config = SGDConfig(learning_rate, 0.9, int(target.shape[0]/64),  64, 2023)
+    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
+    best_parameters = optimizer(max_iter,tolerance)
+    best_model = features @ best_parameters
+    mse_gdm = mean_squared_error(target, best_model)
+    print(optimizer)
+    print(f"MSE: {mse_gdm:.4g}")  
 
 def adagrad():
     """Test adagrad
@@ -187,42 +204,14 @@ def adam():
     print(f"MSE: {rmsprop_mse:.4g}")   
 
 
-
-learning_rate = 1e-4
-momentum = 0.9
-max_iter = 10_000
-tolerance = 5e-5
-# plain Gradient Descent
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-def run_gradient_methods(learning_rate, momentum, max_iter, tolerance):
-
-    # Gradient Descent with momentum
-
-    # Stochastic Gradient Descent
-    config = SGDConfig(learning_rate, 0, int(target.shape[0]/64),  64, 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
-    mse_gdm = mean_squared_error(target, best_model)
-    print(f"Stochastic Gradient Descent MSE: {mse_gdm:.4g}")
-    # Stochastic Gradient Descent with Momentum
-    config = SGDConfig(learning_rate, momentum, int(target.shape[0]/64),  64, 2023)
-    optimizer = StochasticGradientDescent(config, features, target, cost_grad_func, init_parameters)
-    best_parameters = optimizer(max_iter,tolerance)
-    best_model = features @ best_parameters
-    mse_gdm = mean_squared_error(target, best_model)
-    print(f"Stochastic Gradient Descent with Momentum MSE: {mse_gdm:.4g}")
-    optimizer = Adagrad(config, features, target, cost_grad_func, init_parameters)
-    optimized_parameters = optimizer(10_000,1e-5)
-    model = features @ optimized_parameters
-    adagrad_mse = mean_squared_error(target, model)
-    print(f"AdaGrad MSE: {adagrad_mse:.4g}")
-
 if __name__ == "__main__":
-    # adagrad()
+    gradient_descent()
+    gradient_descent_with_momentum()
+    stochastic_gradient_descent()
+    stochastic_gradient_descent_with_momentum
+    adagrad()
     rmsprop()
-    # adam()
-    # run_gradient_methods(103e-6, 0.3, 10_000, 1e-3)
+    adam()
 
 
 
