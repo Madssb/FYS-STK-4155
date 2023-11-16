@@ -71,7 +71,7 @@ class StochasticGradientDescent:
 
         self.learning_rate = learning_rate
         self.mini_batch_size = mini_batch_size
-        self.n_mini_batches = int(np.ceil(problem_config.target[0] / mini_batch_size))
+        self.n_mini_batches = int(problem_config.target.shape[0] / mini_batch_size)
         self.rng = np.random.default_rng(problem_config.random_seed)
         self.features = problem_config.features
         self.target = problem_config.target

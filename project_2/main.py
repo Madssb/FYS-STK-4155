@@ -124,7 +124,7 @@ def problem_n_convergence():
         model = features @ parameters
         return mean_squared_error(target, model)
     problem = ProblemConfig(features, target, cost_grad_func, init_parameters, 2023)
-    convergence = ConvergenceConfig(meta_mse, 0.1)
+    convergence = ConvergenceConfig(meta_mse, 1e-1)
     return problem, convergence, target, features
 
 
@@ -226,14 +226,14 @@ def adam():
 
 
 if __name__ == "__main__":
-    # gradient_descent()
-    # gradient_descent_with_momentum()
+    gradient_descent()
+    gradient_descent_with_momentum()
     stochastic_gradient_descent()
-    # stochastic_gradient_descent_varying_minibatch_size()
-    # stochastic_gradient_descent_with_momentum()
-    # adagrad()
-    # rmsprop()
-    # adam()
+    stochastic_gradient_descent_varying_minibatch_size()
+    stochastic_gradient_descent_with_momentum()
+    adagrad()
+    rmsprop()
+    adam()
 
 
 # def meta_loss(parameters: tuple, forward_pass_func: callable, loss_func: callable,
