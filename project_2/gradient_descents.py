@@ -55,6 +55,10 @@ class ConvergenceConfig:
         self.convergence_threshold = convergence_threshold
         self.divergence_treshold = divergence_treshold
 
+    def __str__(self) -> str:
+        return f"""{self.__class__.__name__}
+Convergence threshold: {self.convergence_threshold:.4g}
+Divergence threshold: {self.divergence_treshold:.4g}"""
 
 class StochasticGradientDescent:
     """ """
@@ -106,7 +110,7 @@ class StochasticGradientDescent:
         return avg_gradient
 
     def __call__(self, n_iterations_max: int):
-        """Advance estiamte for optimal parameters until convergence is reached or
+        """Advance estimate for optimal parameters until convergence is reached or
         `n_iterations_max` number of iterations exceeded.
         """
         self.parameters = self.model_parameters_init
@@ -118,7 +122,6 @@ class StochasticGradientDescent:
             )
             self.parameters_update = momentum
             self.parameters += self.parameters_update
-            # print(np.linalg.norm(self.parameters_update))
             if self.converged():
                 self.convergence = True
                 break

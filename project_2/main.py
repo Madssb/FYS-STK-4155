@@ -6,7 +6,11 @@ from ffnn import FeedForwardNeuralNetwork
 from gradient_descents import *
 from activation_functions import sigmoid
 from loss_functions import mean_squared_error
-
+from tabulate import tabulate
+import time
+import pandas as pd
+import seaborn as sns
+from utilities import franke_function, my_figsize
 import matplotlib.pyplot as plt
 
 
@@ -103,7 +107,7 @@ def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndar
     return features_xy
 
 
-def problem_n_convergence():
+def problem_n_convergence(tolerance):
     """Generate Franke Function mesh with noise"""
     rng = np.random.default_rng(2023)
     x = rng.random(50)
@@ -124,18 +128,19 @@ def problem_n_convergence():
         model = features @ parameters
         return mean_squared_error(target, model)
     problem = ProblemConfig(features, target, cost_grad_func, init_parameters, 2023)
-    convergence = ConvergenceConfig(meta_mse, 1e-1)
+    convergence = ConvergenceConfig(meta_mse, tolerance)
     return problem, convergence, target, features
 
 
-def gradient_descent():
+def gradient_descent(learning_rate: float):
     """Apply GD on model for Franke data with noise, with tuned learning rate.
     """
-    problem, convergence, target, features = problem_n_convergence()
+    problem, convergence, target, features = problem_n_convergence(1e-2)
     optimizer = GradientDescent(problem, convergence, 10e-6, 0)
     optimized_parameters = optimizer(10_000)
     best_model = features @ optimized_parameters
     mse_gd = mean_squared_error(target, best_model)
+    final_iter = optimizer.iteration
     print(optimizer)
     print(f"MSE: {mse_gd:.4g}")
 
@@ -143,7 +148,7 @@ def gradient_descent():
 def gradient_descent_with_momentum():
     """Apply GDM on model
     """
-    problem, convergence, target, features = problem_n_convergence()
+    problem, convergence, target, features = problem_n_convergence(1e-2)
     optimizer = GradientDescent(problem, convergence, 10e-6, 0.9)
     optimized_parameters = optimizer(10_000)
     best_model = features @ optimized_parameters
@@ -168,32 +173,78 @@ def stochastic_gradient_descent_varying_minibatch_size():
     """apply SGD as specified in `stochastic_gradient_descent` with varying
     mini bath sizes.
     """
-    problem, convergence, target, features = problem_n_convergence()
-    mini_batch_sizes = [1, 2, 4, 8, 16, 32, 64, 128]
+    problem, convergence, target, features = problem_n_convergence(5e-2)
+    mini_batch_sizes = [1, 2, 4, 8, 9, 16, 17, 32, 33, 64, 65, 128, 129]
+    convergence_epoch = []
+    mses = []
+    cpu_times = []
+    print(convergence)
     for mini_batch_size in mini_batch_sizes:
-        optimizer = StochasticGradientDescent(problem, convergence, 7e-6, 0, mini_batch_size)
+        problem, convergence, target, features = problem_n_convergence()
+        optimizer = StochasticGradientDescent(problem, convergence, 0.4e-4, 0, mini_batch_size)
+        start_time = time.process_time()
         optimized_parameters = optimizer(10_000)
+        end_time = time.process_time()
         best_model = features @ optimized_parameters
         mse_gd = mean_squared_error(target, best_model)
+        convergence_epoch.append(optimizer.iteration)
+        mses.append(mse_gd)
+        cpu_times.append(end_time - start_time)
         print(optimizer)
         print(f"MSE: {mse_gd:.4g}")
-
+    mini_batch_size_arr = np.array(mini_batch_sizes)
+    convergence_iteration_arr = np.array(convergence_epoch)
+    data = list(zip(mini_batch_sizes, convergence_epoch, cpu_times))
+    print(tabulate(data, headers=["mini batch size", "epoch of convergence", "cpu time"], tablefmt="latex"))
 
 def stochastic_gradient_descent_with_momentum():
     """Test Stochastic Gradient Descent"""
-    problem, convergence, target, features = problem_n_convergence()
-    optimizer = StochasticGradientDescent(problem, convergence, 0.86e-6, 0.9, 64)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
+    problem, convergence, target, features = problem_n_convergence(1e-2)
+    learning_rates = np.logspace(-6, -5, 5)
+    momentum_parameters = np.linspace(0,0.9,5) 
+    mses = np.empty((5, 5))
+    mses_list = []
+    
+    for learning_rate in learning_rates:
+        for momentum_parameter in momentum_parameters:
+            try:
+                optimizer = StochasticGradientDescent(problem, convergence, learning_rate, momentum_parameter, 128)
+                optimized_parameters = optimizer(1_000)
+                best_model = features @ optimized_parameters
+                mse = mean_squared_error(target, best_model)
+                
+                # Append the results to the list
+                mses_list.append({"Learning Rate": learning_rate, "Momentum Parameter": momentum_parameter, "MSE": mse})
+                
+                # Print the result
+                print(optimizer)
+                print(f"MSE: {mse:.4g}")
+            except ValueError:
+                # If optimization diverged, you can skip this iteration
+                continue
+    
+    # Create a DataFrame from the list of results
+    mses_df = pd.DataFrame(mses_list)
 
+    # Pivot the DataFrame to create a 2D table for the heatmap
+    heatmap_data = mses_df.pivot_table(index="Learning Rate", columns="Momentum Parameter", values="MSE")
+
+    # Create the heatmap using Seaborn
+    plt.figure()
+    sns.heatmap(heatmap_data, annot=True, cmap='coolwarm', fmt=".4f", linewidths=0.5)
+    plt.xlabel("Momentum Parameter")
+    plt.ylabel("Learning Rate")
+
+    # Set the number of digits on the axes and add labels
+    plt.xticks(np.arange(len(heatmap_data.columns)), heatmap_data.columns.map(lambda x: f"{x:.4f}"), rotation=45)
+    plt.yticks(np.arange(len(heatmap_data.index)), heatmap_data.index.map(lambda x: f"{x:.4f}"))
+    plt.tight_layout()
+    plt.show()
 
 def adagrad():
     """Test adagrad"""
     problem, convergence, target, features = problem_n_convergence()
-    optimizer = Adagrad(problem, convergence, 0.06, 64)
+    optimizer = Adagrad(problem, convergence, 0.06, 128)
     optimized_parameters = optimizer(10_000)
     best_model = features @ optimized_parameters
     mse_gd = mean_squared_error(target, best_model)
@@ -204,7 +255,7 @@ def adagrad():
 def rmsprop():
     """Test RMSProp"""
     problem, convergence, target, features = problem_n_convergence()
-    optimizer = RMSProp(problem, convergence, 900e-6, 64, 0.99982)
+    optimizer = RMSProp(problem, convergence, 900e-6, 128, 0.99982)
     optimized_parameters = optimizer(10_000)
     best_model = features @ optimized_parameters
     mse_gd = mean_squared_error(target, best_model)
@@ -217,23 +268,43 @@ def adam():
     Test ADAM
     """
     problem, convergence, target, features = problem_n_convergence()
-    optimizer = ADAM(problem, convergence, 1.64e-2, 64)
+    optimizer = ADAM(problem, convergence, 1.64e-2, 128)
     optimized_parameters = optimizer(10_000)
     best_model = features @ optimized_parameters
     mse_gd = mean_squared_error(target, best_model)
     print(optimizer)
     print(f"MSE: {mse_gd:.4g}")
 
+def adam2():
+    """
+    Test ADAM
+    """
+    mini_batch_sizes = [2,4,8,9,16,17,32,33,64,65,128,129]
+    convergence_epoch = []
+    cpu_times = []
+    for mini_batch_size in mini_batch_sizes:
+        problem, convergence, target, features = problem_n_convergence()
+        optimizer = ADAM(problem, convergence, 1.64e-2, mini_batch_size)
+        start = time.process_time()
+        optimized_parameters = optimizer(10_000)
+        end = time.process_time()
+        cpu_times.append(end - start)
+        convergence_epoch.append(optimizer.iteration)
+        best_model = features @ optimized_parameters
+    data = list(zip(mini_batch_sizes, convergence_epoch, cpu_times))
+    print(tabulate(data, headers=["mini batch size", "epoch of convergence", "cpu time"]))
+
 
 if __name__ == "__main__":
     gradient_descent()
-    gradient_descent_with_momentum()
-    stochastic_gradient_descent()
-    stochastic_gradient_descent_varying_minibatch_size()
-    stochastic_gradient_descent_with_momentum()
-    adagrad()
-    rmsprop()
-    adam()
+    # gradient_descent_with_momentum()
+    # stochastic_gradient_descent()
+    # stochastic_gradient_descent_varying_minibatch_size()
+    # stochastic_gradient_descent_with_momentum()
+    # adagrad()
+    # rmsprop()
+    # adam()
+    # adam2()
 
 
 # def meta_loss(parameters: tuple, forward_pass_func: callable, loss_func: callable,
