@@ -56,6 +56,11 @@ def accuracy_score(target, prediction):
 def MSE(target, prediction):
     return np.mean((target - prediction)**2)
 
+def R2(target, prediction):
+  SSE = np.sum((target - prediction)**2)
+  Var = np.sum((target - np.mean(target))**2)
+  return 1 - SSE/Var
+
 class FeedForwardNeuralNetwork:
 
     """
@@ -109,7 +114,13 @@ class FeedForwardNeuralNetwork:
         # Initialize instance variables
         self.X_full = X_data
         self.Y_full = Y_data
+        # print('shape', np.shape(X_data), 'dim', X_data.ndim)
+        # if X_data.ndim < 2:
+        #     self.n_inputs, self.n_features = np.shape(X_data), 1
+        # else:
+        #     self.n_inputs, self.n_features = np.shape(X_data)
         self.n_inputs, self.n_features = np.shape(X_data)
+        # print(self.n_features, 'dim X_Data', X_data.ndim)
         self.n_hidden_layers = n_hidden_layers
         self.n_hidden_neurons = n_hidden_neurons
         self.output_activation_function = output_activation_function
@@ -196,13 +207,17 @@ class FeedForwardNeuralNetwork:
         self.feed_forward_pass(X)
         
         error_output = self.a_output - Y
+        # print(np.shape(error_output))
         self.output_weights_gradient = self.a_hidden[:,:,-1].T @ error_output
         self.output_bias_gradient = np.sum(error_output)
         
         error_output = np.expand_dims(error_output,1) # Broadcast the vector to allow matrix multiplication
+        # print(np.shape(error_output), np.shape(self.output_weights))
         output_weights = np.expand_dims(self.output_weights,1) # Broadcast the vector to allow matrix multiplication
 
         error_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
+        # print(np.shape(error_output), np.shape(output_weights.T), np.shape(self.hidden_activation_derivative(self.z_hidden[:,:,-1])))
+        # exit()
         error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.z_hidden[:,:,-1])
 
         if self.n_hidden_layers > 1: 
@@ -232,7 +247,7 @@ class FeedForwardNeuralNetwork:
             return [self.output_weights_gradient, self.output_bias_gradient, self.hidden_weights_gradient, self.hidden_bias_gradient]
     
 
-    def train(self, optimizer, evaluation_func: callable, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0):
+    def train(self, optimizer, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0, evaluation_func=None, history=False):
         
         self.n_epochs = n_epochs
         if self.n_hidden_layers > 1:
@@ -246,8 +261,13 @@ class FeedForwardNeuralNetwork:
                               init_model_parameters=model_parameters,
                               init_lr = init_lr, batch_size=batch_size,
                               momentum = momentum,random_state=self.random_state)
+        
+        # if len(evaluation_func) > 1:
+        if history == True:
+            self.history = np.zeros((len(evaluation_func) ,n_epochs))
+        # else:
+        #     self.history = np.zeros(len(n_epochs))
 
-        self.history = []
 
         for i in range(self.n_epochs):
             model_parameters = optimizer.advance(model_parameters)
@@ -255,8 +275,10 @@ class FeedForwardNeuralNetwork:
                 [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias] = model_parameters
             else:
                 [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias] = model_parameters
-            performance = evaluation_func(self.Y_full, self.predict(self.X_full))
-            self.history.append(performance)
+            
+            if history == True:
+                for j, eval_func in enumerate(evaluation_func):
+                    self.history[j, i] = eval_func(self.Y_full, self.predict(self.X_full))
 
 
 if __name__ == '__main__':
@@ -291,7 +313,7 @@ if __name__ == '__main__':
 
     #Shuffle and split into training and test data
     from sklearn.model_selection import train_test_split
-    X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.5)
+    X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.4)
 
     instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
                                 output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
@@ -299,6 +321,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     plt.plot(np.arange(instance.n_epochs), instance.history)
     plt.show()
+    exit()
 
 
     # Explore parameter space
