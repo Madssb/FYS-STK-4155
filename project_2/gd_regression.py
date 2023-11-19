@@ -1,3 +1,18 @@
+"""
+TO DO LIST
+
+
+1. Vis hva enn som går ann å vises med plain GD (X)
+1.1. vis sammenhengen med økning i learning rate, og antall e-pochs krevd for konvergens (X)
+1.2. vis at ved for høye learning rates så eksploderer MSEen (X)
+
+2. vis hva enn som gar ann å vise med GDM
+2.1. vis sammenhengen mellom learning rate, og momentum parameter og antall e-pochs krevd for konvergens.
+
+3. plukk ut best performing 
+3.1. utforsk MSE sin sammenheng med mini-batch size
+3.2. 
+"""
 import numpy as np
 from gradient_descents import *
 from loss_functions import mean_squared_error
@@ -8,7 +23,6 @@ import seaborn as sns
 from utilities import franke_function, my_figsize
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
 
 def poly_features(input, degree):
     """
@@ -103,7 +117,7 @@ def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndar
     return features_xy
 
 
-def problem_n_convergence(tolerance):
+def problem_n_convergence(tolerance, divergence_tol=1e3):
     """Generate Franke Function mesh with noise"""
     rng = np.random.default_rng(2023)
     x = rng.random(50)
@@ -125,7 +139,7 @@ def problem_n_convergence(tolerance):
         model = features_train @ parameters
         return mean_squared_error(target_train, model)
     problem = ProblemConfig(features_train, target_train, cost_grad_func, init_parameters, 2023)
-    convergence = ConvergenceConfig(meta_mse, tolerance)
+    convergence = ConvergenceConfig(meta_mse, tolerance, divergence_tol)
     return problem, convergence, target_test, features_test
 
 
@@ -158,6 +172,32 @@ def gradient_descent():
     min_index = np.argmin(convergence_epoch)
     print(f"most efficient learning rate: {learning_rates[min_index]},")
     print(f"converged in {convergence_epoch[min_index]} e-pochs.")
+
+def gd_show_divergence():
+    """Demonstrate MSE exploding when learning rate is too big
+    """
+    learning_rates = np.linspace(90e-6,170e-6,10)
+    convergence_epoch = np.empty_like(learning_rates)
+    mse = np.empty_like(learning_rates)
+    for i, learning_rate in enumerate(learning_rates):
+        problem, convergence, target, features = problem_n_convergence(1e-1,np.inf)
+        optimizer = GradientDescent(problem, convergence, learning_rate, 0)
+        optimized_parameters = optimizer(10_00)
+        best_model = features @ optimized_parameters
+        mse[i] = mean_squared_error(target, best_model)
+        convergence_epoch[i] = optimizer.iteration
+    results = pd.DataFrame({
+        'Learning Rate': learning_rates,
+        'Convergence Epoch': convergence_epoch,
+        'Mean Squared Error': mse
+    })
+    fig = plt.figure(figsize=my_figsize())
+    plt.scatter(learning_rates, mse, c='black', s=1)
+    plt.xlabel("Learning rate $\eta$")
+    plt.xscale("log")
+    plt.ylabel("MSE")
+    fig.tight_layout()
+    plt.show()
 
 
 def gradient_descent_with_momentum():
@@ -338,7 +378,8 @@ def adam2():
 
 if __name__ == "__main__":
     # gradient_descent()
-    gradient_descent_with_momentum()
+    # gradient_descent_with_momentum()
+    gd_show_divergence()
     # stochastic_gradient_descent()
     # stochastic_gradient_descent_varying_minibatch_size()
     # stochastic_gradient_descent_with_momentum()
