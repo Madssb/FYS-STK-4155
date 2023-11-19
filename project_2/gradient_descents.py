@@ -1,339 +1,344 @@
-
 import numpy as np
-from loss_functions import mean_squared_error
 
-class GradientDescent:
-    """
-    Find local minima with Gradient Descent.
-
-    Parameters
+class ProblemConfig:
+    """Define optimization problem
+    Attributes
     ----------
-    learning_rate : float
-        Learning rate.
-    grad_func : callable
-        Gradient of the function to be optimized.
-    init_guess : float, tuple, or numpy.ndarray
-        Initial guess for the minima input.
+    features: np.ndarray
+        Inputs.
+    target: np.ndarray
+        Targets.
+    cost_grad_func: callable
+        Gradient of the cost function w.r.t parameters. Must take arguments
+        `features`, `target`, `model_parameters`.
+    model_parameters_init: np.ndarray
+        Initial model parameters.
+    random_seed: int
+        seed for random number generator.
     """
 
-    def __init__(self, learning_rate: float, grad_func: callable,
-                 init_guess: float | np.ndarray | tuple):
-        if not isinstance(learning_rate, float):
-            raise TypeError(
-                f"learning_rate: expected float, got {type(learning_rate)}.")
-        if not callable(grad_func):
-            raise TypeError(
-                f"grad_func: expected callable, got {type(grad_func)}.")
-        if not isinstance(init_guess, (tuple, float, np.ndarray)):
-            raise TypeError(
-                f"init_guess: expected tuple, got {type(init_guess)}.")
-        self.learning_rate = learning_rate
-        self.grad_func = grad_func
-        self.init_guess = init_guess
-
-    def advance(self, guess):
-        """
-        Advance minima value guess with momentum.
-
-        Parameters
-        ----------
-        guess : float, tuple, or numpy.ndarray
-            Current guess for the minima.
-
-        Returns
-        -------
-        float, tuple, or numpy.ndarray
-            Updated minima value guess.
-        """
-        return guess - self.learning_rate*self.grad_func(guess)
-
-    def __call__(self, iterations_max: int, tolerance: float):
-        """
-        Compute minima estimate.
-
-        Parameters
-        ----------
-        iterations_max : int
-            Maximum number of iterations.
-        tolerance : float
-            Convergence tolerance.
-
-        Returns
-        -------
-        float, tuple, or numpy.ndarray
-            Estimated minima.
-        int
-            Number of iterations performed.
-        """
-        if not isinstance(iterations_max, int):
-            raise TypeError(
-                f"iterations: expected int, got {type(iterations_max)}")
-        if not isinstance(tolerance, float):
-            raise TypeError(
-                f"tolerance: expected float, got {type(tolerance)}")
-        iteration = 0
-        guess = self.init_guess
-        while True:
-            new_guess = self.advance(guess)
-            change = new_guess - guess
-            iteration += 1
-            guess = new_guess
-            if iteration >= iterations_max or np.abs(change).all() < tolerance:
-                break
-        n_iterations = iteration
-        return guess, n_iterations
+    def __init__(
+        self,
+        features: np.ndarray,
+        target: np.ndarray,
+        cost_grad_func: callable,
+        model_parameters_init: np.ndarray,
+        random_seed: int,
+    ):
+        self.features = features
+        self.target = target
+        self.cost_grad_func = cost_grad_func
+        self.model_parameters_init = model_parameters_init
+        self.random_seed = random_seed
 
 
-def test_gradient_descent():
-    """
-    Validate GradientDescent with simple polynomial example.
-    """
-    def simple_polynomial(x: np.ndarray | float):
-        """
-        Compute a simple polynomial function.
-
-        Parameters
-        ----------
-        x : float or numpy.ndarray
-            Input values.
-
-        Returns
-        -------
-        float or numpy.ndarray
-            Function values.
-        """
-        return 5 + 2*x + 7*x**2
-
-    def simple_polynomial_grad(x: np.ndarray | float):
-        """
-        Compute the gradient of a simple polynomial function.
-
-        Parameters
-        ----------
-        x : float or numpy.ndarray
-            Input values.
-
-        Returns
-        -------
-        float or numpy.ndarray
-            Gradient values.
-        """
-        return 2 + 14*x
-
-    optimizer = GradientDescent(0.1, simple_polynomial_grad, 2.)
-    guess, n_iterations = optimizer(10000, 1e-5)
-    domain = np.linspace(-5, 5, 100)
-    eval = simple_polynomial(domain)
-    minima_point_analytical = -0.1429
-    tolerance = 1e-3
-    assert np.abs(guess-minima_point_analytical) < tolerance
-
-
-class GradientDescentWithMomentum(GradientDescent):
-    """
-    Find local minima with Gradient Descent with Momentum.
-
-    Parameters
+class ConvergenceConfig:
+    """Define convergence for optimization
+    Attributes
     ----------
-    learning_rate : float
-        Learning rate.
-    grad_func : callable
-        Gradient of the function to be optimized.
-    init_guess : float, tuple, or numpy.ndarray
-        Initial guess for the minima input.
-    momentum_parameter : float
-        Momentum parameter.
+    meta_eval : callable
+        meta evaluation func which takes parameters as only arg
+    convergence_threshold : float
+        Value which `meta_eval` must evaluate to for convergence
+    divergence_treshold : float
+        Value which `parameters_change` norm may not exceed
+
     """
 
-    def __init__(self, learning_rate: float, grad_func: callable,
-                 init_guess: float | np.ndarray | tuple, momentum_parameter: float):
-        # Call the constructor of the parent class (GradientDescent)
-        super().__init__(learning_rate, grad_func, init_guess)
+    def __init__(
+        self,
+        meta_eval: callable,
+        convergence_threshold: int = 1e-3,
+        divergence_treshold: int = 1e3,
+    ) -> None:
+        self.meta_eval = meta_eval
+        self.convergence_threshold = convergence_threshold
+        self.divergence_treshold = divergence_treshold
 
-        if not isinstance(momentum_parameter, float):
-            raise TypeError(
-                f"momentum_parameter: expected float, got {type(momentum_parameter)}.")
+    def __str__(self) -> str:
+        return f"""{self.__class__.__name__}
+Convergence threshold: {self.convergence_threshold:.4g}
+Divergence threshold: {self.divergence_treshold:.4g}"""
 
+class StochasticGradientDescent:
+    """ """
+
+    def __init__(
+        self,
+        problem_config: ProblemConfig,
+        convergence_config: ConvergenceConfig,
+        learning_rate: float,
+        momentum_parameter: float,
+        mini_batch_size: int,
+    ):
         self.momentum_parameter = momentum_parameter
-        self.momentum = 0  # Initialize momentum to zero
 
-    def advance(self, guess):
+        self.learning_rate = learning_rate
+        self.mini_batch_size = mini_batch_size
+        self.n_mini_batches = int(problem_config.target.shape[0] / mini_batch_size)
+        self.rng = np.random.default_rng(problem_config.random_seed)
+        self.features = problem_config.features
+        self.target = problem_config.target
+        self.cost_grad_func = problem_config.cost_grad_func
+        self.model_parameters_init = problem_config.model_parameters_init
+        self.data_indices = np.arange(self.target.shape[0])
+        self.convergence = False
+        self.meta_eval = convergence_config.meta_eval
+        self.convergence_threshold = convergence_config.convergence_threshold
+        self.divergence_treshold = convergence_config.divergence_treshold
+
+    def converged(self):
+        param_update_norm = np.linalg.norm(self.parameters_update)
+        if param_update_norm > self.divergence_treshold:
+            raise ValueError(f"Optimization diverged at iteration {self.iteration}")
+        return self.meta_eval(self.parameters) < self.convergence_threshold
+
+    def average_gradient(self, model_parameters: np.ndarray):
+        """Compute average gradient for `n_minibatches` number of minibatches
+        of size `mini_batch_size` without replacement.
         """
-        Advance minima value guess with momentum.
+        avg_gradient = np.zeros_like(model_parameters, dtype=float)
+        for _ in range(self.n_mini_batches):
+            mini_batch_indices = self.rng.choice(
+                self.data_indices, size=self.mini_batch_size, replace=False
+            )
+            mini_batch_input = self.features[mini_batch_indices]
+            mini_batch_target = self.target[mini_batch_indices]
+            avg_gradient += self.cost_grad_func(
+                mini_batch_input, mini_batch_target, model_parameters
+            )
+        return avg_gradient
 
-        Parameters
-        ----------
-        guess : float, tuple, or numpy.ndarray
-            Current guess for the minima.
-
-        Returns
-        -------
-        float, tuple, or numpy.ndarray
-            Updated minima value guess.
+    def __call__(self, n_iterations_max: int):
+        """Advance estimate for optimal parameters until convergence is reached or
+        `n_iterations_max` number of iterations exceeded.
         """
-        gradient = self.grad_func(guess)
-        self.momentum = self.momentum_parameter * \
-            self.momentum + self.learning_rate * gradient
-        return guess - self.momentum
-
-
-def test_gradient_descent_with_momentum():
-    """
-    Validate GradientDescentWithMomentum with simple polynomial example.
-    """
-    def simple_polynomial(x: np.ndarray | float) -> np.ndarray | float:
-        return 5 + 2 * x + 7 * x ** 2
-
-    def simple_polynomial_grad(x: np.ndarray | float) -> np.ndarray | float:
-        return 2 + 14 * x
-
-    optimizer = GradientDescentWithMomentum(
-        0.1, simple_polynomial_grad, 2., 0.9)  # Add momentum parameter
-    guess, n_iterations = optimizer(10000, 1e-5)
-    domain = np.linspace(-5, 5, 100)
-    eval = simple_polynomial(domain)
-    minima_point_analytical = -0.1429
-    tolerance = 1e-3
-    assert np.abs(guess - minima_point_analytical) < tolerance
-
-
-class StochasticGradientDescent(GradientDescent):
-    """
-    Stochastic Gradient Descent (SGD) optimizer for finding local minima.
-
-    Parameters
-    ----------
-    learning_rate : float
-        The learning rate used for updating the parameters.
-    grad_func : callable
-        The gradient of the function to be optimized.
-    init_guess : float, tuple, or numpy.ndarray
-        Initial guess for the minima input.
-    batch_size : int
-        Number of data points to use in each mini-batch.
-    num_mini_batches : int
-        Number of mini-batches to use in each iteration.
-
-    """
-
-    def __init__(self, learning_rate: float, grad_func: callable,
-                 init_guess: float | np.ndarray | tuple, batch_size: int,
-                 num_mini_batches: int):
-        super().__init__(learning_rate, grad_func, init_guess)
-        self.batch_size = batch_size
-        self.num_mini_batches = num_mini_batches
-
-    def advance(self, guess):
-        """
-        Advance minima value guess using Stochastic Gradient Descent with mini-batches.
-
-        Parameters
-        ----------
-        guess : float, tuple, or numpy.ndarray
-            Current guess for the minima.
-
-        Returns
-        -------
-        float, tuple, or numpy.ndarray
-            Updated minima value guess.
-
-        """
-        gradient_sum = np.zeros_like(guess)
-
-        for _ in range(self.num_mini_batches):
-            mini_batch_indices = np.random.choice(
-                len(guess), size=self.batch_size, replace=False)
-            mini_batch = guess[mini_batch_indices]
-            gradient_sum += self.grad_func(mini_batch)
-
-        average_gradient = gradient_sum / self.num_mini_batches
-        return guess - self.learning_rate * average_gradient
-
-    def __call__(self, iterations_max: int, tolerance: float):
-        """
-        Compute the minima estimate using Stochastic Gradient Descent.
-
-        Parameters
-        ----------
-        iterations_max : int
-            Maximum number of iterations.
-        tolerance : float
-            Convergence tolerance.
-
-        Returns
-        -------
-        float, tuple, or numpy.ndarray
-            Estimated minima.
-        int
-            Number of iterations performed.
-
-        """
-        if not isinstance(iterations_max, int):
-            raise TypeError(
-                f"iterations_max: expected int, got {type(iterations_max)}")
-        if not isinstance(tolerance, float):
-            raise TypeError(
-                f"tolerance: expected float, got {type(tolerance)}")
-        iteration = 0
-        guess = self.init_guess
-        while True:
-            new_guess = self.advance(guess)
-            change = new_guess - guess
-            iteration += 1
-            guess = new_guess
-            if iteration >= iterations_max or np.all(np.abs(change) < tolerance):
+        self.parameters = self.model_parameters_init
+        momentum = np.zeros_like(self.parameters)
+        for self.iteration in range(1, n_iterations_max + 1):
+            momentum = (
+                self.momentum_parameter * momentum
+                - self.average_gradient(self.parameters) * self.learning_rate
+            )
+            self.parameters_update = momentum
+            self.parameters += self.parameters_update
+            if self.converged():
+                self.convergence = True
                 break
-        n_iterations = iteration
-        return guess, n_iterations
+        return self.parameters
 
-def test_stochastic_gradient_descent():
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Momentum parameter: {self.momentum_parameter:.4g}
+Mini batch size: {self.mini_batch_size:.4g}
+# of Mini batches: {self.n_mini_batches}
+# of epochs: {self.iteration}
+Converged: {self.convergence}"""
+
+
+class GradientDescent(StochasticGradientDescent):
     """
-    Validate StochasticGradientDescent with a simple example.
+    Gradient Descent
     """
-    def simple_function(x):
+
+    def __init__(
+        self,
+        problem_config: ProblemConfig,
+        convergence_config: ConvergenceConfig,
+        learning_rate: float,
+        momentum_parameter: float,
+    ):
+        n_data = problem_config.target.shape[0]
+        super().__init__(
+            problem_config,
+            convergence_config,
+            learning_rate,
+            momentum_parameter,
+            n_data,
+        )
+        self.n_mini_batches = 1
+
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Momentum parameter: {self.momentum_parameter:.4g}
+# of iterations: {self.iteration}
+Converged: {self.convergence}"""
+
+
+class Adagrad(StochasticGradientDescent):
+    """ """
+
+    def __init__(
+        self,
+        problem_config: ProblemConfig,
+        convergence_config: ConvergenceConfig,
+        learning_rate: float,
+        mini_batch_size: int,
+        regularization: float = 1e-8,
+    ):
+        super().__init__(
+            problem_config,
+            convergence_config,
+            learning_rate,
+            None,
+            mini_batch_size,
+        )
+        del self.momentum_parameter
+        self.regularization = regularization
+
+    def __call__(self, n_iterations_max: int):
+        """Advance estiamte for optimal parameters until convergence is reached or
+        `n_iterations_max` number of iterations exceeded.
         """
-        Compute a simple function.
+        self.parameters = self.model_parameters_init
+        cumulative_squared_gradient = np.zeros_like(self.model_parameters_init)
+        for self.iteration in range(1, n_iterations_max + 1):
+            avg_gradient = self.average_gradient(self.parameters)
+            cumulative_squared_gradient += avg_gradient * avg_gradient
+            self.parameters_update = -(self.learning_rate * avg_gradient) / (
+                self.regularization + np.sqrt(cumulative_squared_gradient)
+            )
+            self.parameters += self.parameters_update
+            if self.converged():
+                self.convergence = True
+                break
+        return self.parameters
 
-        Parameters
-        ----------
-        x : float or numpy.ndarray
-            Input values.
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Mini batch size: {self.mini_batch_size:.4g}
+Regularization constant: {self.regularization:.4g}
+# of Mini batches: {self.n_mini_batches}
+# of epochs: {self.iteration}
+Converged: {self.convergence}"""
 
-        Returns
-        -------
-        float or numpy.ndarray
-            Function values.
+
+class RMSProp(StochasticGradientDescent):
+    """
+    IDK
+    """
+
+    def __init__(
+        self,
+        problem_config: ProblemConfig,
+        convergence_config: ConvergenceConfig,
+        learning_rate: float,
+        mini_batch_size: int,
+        decay_rate: float,
+        regularization: float = 1e-8,
+    ):
+        super().__init__(
+            problem_config,
+            convergence_config,
+            learning_rate,
+            None,
+            mini_batch_size,
+        )
+        del self.momentum_parameter
+        self.decay_rate = decay_rate
+        self.regularization = regularization
+
+    def __call__(self, n_iterations_max: int):
+        """Advance estiamte for optimal parameters until convergence is reached or
+        `n_iterations_max` number of iterations exceeded.
         """
-        return 2 * x**2 + 3 * x + 1
+        self.parameters = self.model_parameters_init
+        cumulative_squared_gradient = np.zeros_like(self.model_parameters_init)
+        for self.iteration in range(1, n_iterations_max + 1):
+            avg_gradient = self.average_gradient(self.parameters)
+            cumulative_squared_gradient = (
+                self.decay_rate * cumulative_squared_gradient
+                + (1 - self.decay_rate) * avg_gradient * avg_gradient
+            )
+            self.parameters_update = -(self.learning_rate * avg_gradient) / (
+                self.regularization + np.sqrt(cumulative_squared_gradient)
+            )
+            self.parameters += self.parameters_update
+            if self.converged():
+                self.convergence = True
+                break
+        return self.parameters
 
-    def simple_gradient(x):
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Regularization constant: {self.regularization:.4g}
+Decay rate: {self.decay_rate:.4g}
+Mini batch size: {self.mini_batch_size:.4g}
+# of mini batches: {self.n_mini_batches}
+# of epochs: {self.iteration}
+Converged: {self.convergence}"""
+
+
+class ADAM(StochasticGradientDescent):
+    def __init__(
+        self,
+        problem_config: ProblemConfig,
+        convergence_cofig: ConvergenceConfig,
+        learning_rate: float,
+        mini_batch_size: int,
+        momentum_decay_rate: float = 0.9,
+        accumulated_decay_rate: float = 0.999,
+        regularization: float = 1e-8,
+    ):
+        super().__init__(
+            problem_config,
+            convergence_cofig,
+            learning_rate,
+            None,
+            mini_batch_size,
+        )
+        del self.momentum_parameter
+        self.momentum_decay_rate = momentum_decay_rate
+        self.accumulated_decay_rate = accumulated_decay_rate
+        self.regularization = regularization
+
+    def __call__(self, n_iterations_max: int):
+        """Advance estiamte for optimal parameters until convergence is reached or
+        `n_iterations_max` number of iterations exceeded.
         """
-        Compute the gradient of a simple function.
+        self.parameters = self.model_parameters_init
+        first_moment = np.zeros_like(self.parameters)
+        second_moment = np.zeros_like(self.parameters)
+        time_step = 0
+        for self.iteration in range(1, n_iterations_max + 1):
+            avg_gradient = self.average_gradient(self.parameters)
+            time_step += 1
+            first_moment = (
+                self.momentum_decay_rate * first_moment
+                + (1 - self.momentum_decay_rate) * avg_gradient
+            )
+            second_moment = (
+                self.accumulated_decay_rate * second_moment
+                + (1 - self.accumulated_decay_rate) * avg_gradient * avg_gradient
+            )
+            first_moment_corrected = first_moment / (
+                1 - self.momentum_decay_rate**time_step
+            )
+            second_moment_corrected = second_moment / (
+                1 - self.accumulated_decay_rate**time_step
+            )
+            self.parameters_update = (
+                -self.learning_rate
+                * first_moment_corrected
+                / (np.sqrt(second_moment_corrected) + self.regularization)
+            )
+            self.parameters += self.parameters_update
+            if self.converged():
+                self.convergence = True
+                break
+        return self.parameters
 
-        Parameters
-        ----------
-        x : float or numpy.ndarray
-            Input values.
-
-        Returns
-        -------
-        float or numpy.ndarray
-            Gradient values.
-        """
-        return 4 * x + 3
-
-    learning_rate = 0.01
-    batch_size = 10
-    num_mini_batches = 20
-    initial_guess = 2.0
-
-    optimizer = StochasticGradientDescent(learning_rate, simple_gradient, initial_guess, batch_size, num_mini_batches)
-    estimated_minima, num_iterations = optimizer(10000, 1e-5)
-
-    # Analytical solution for the minimum of the simple function
-    analytical_minima = -3/4
-
-    # Check if the estimated minima is close to the analytical minima
-    tolerance = 1e-3
-    assert np.abs(estimated_minima - analytical_minima) < tolerance
-        
+    def __str__(self):
+        return f"""{self.__class__.__name__}
+Learning rate: {self.learning_rate:.4g}
+Regularization constant: {self.regularization:.4g}
+Momentum decay rate: {self.momentum_decay_rate:.4g}
+Accumulated decay rate: {self.accumulated_decay_rate:.4g}
+Mini batch size: {self.mini_batch_size:.4g}
+# of mini batches: {self.n_mini_batches}
+# of epochs: {self.iteration}
+Converged: {self.convergence}"""

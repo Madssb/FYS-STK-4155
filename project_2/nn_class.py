@@ -1,7 +1,10 @@
 import numpy as np
 from random import random, seed
+from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative
 np.random.seed(2023)
 
+<<<<<<< HEAD
+=======
 from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
 
 # Activation function
@@ -37,6 +40,7 @@ def identity(x):
 def identity_derivative(x):
     return 1
 
+>>>>>>> 2759ae98c7621fb86213897fdd49df3d0b878040
 # Accuracy score functions for classification
 
 def hard_classifier(probability):

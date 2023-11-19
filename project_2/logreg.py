@@ -1,4 +1,5 @@
 import numpy as np
+from activation_functions import sigmoid
 np.random.seed(2023)
 
 class LogisticRegression:
@@ -94,10 +95,6 @@ class LogisticRegression:
             performance = accuracy_score(self.Y_full,self.predict(self.X_full))
             self.history.append(performance)
 
-# Activation function
-
-def sigmoid(x):
-    return 1./(1 + np.exp(-x))
 
 # Accuracy score functions for classification
 

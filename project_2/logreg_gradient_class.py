@@ -1,7 +1,8 @@
 import numpy as np
 np.random.seed(2023)
-
-from SGD import SGD_const, SDG_AdaGrad, SDG_RMSProp, SDG_ADAM
+from activation_functions import sigmoid
+from gradient_descents import StochasticGradientDescent, Adagrad, RMSProp, ADAM
+from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative
 
 class LogisticRegression:
 
@@ -86,12 +87,6 @@ class LogisticRegression:
             [self.weights, self.bias] = model_parameters
             performance = self.evaluation(self.Y_full,self.predict(self.X_full))
             self.history.append(performance)
-           
-
-# Activation function
-
-def sigmoid(x):
-    return 1./(1 + np.exp(-x))
 
 # Accuracy score functions for classification
 
@@ -142,7 +137,7 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
 
 instance = LogisticRegression(X_train, target_train,L2=0.001)
-instance.train(SDG_ADAM, n_epochs=100, init_lr=0.1)
+instance.train(ADAM, n_epochs=100, init_lr=0.1)
 print(instance.weights)
 import matplotlib.pyplot as plt
 plt.plot(np.arange(instance.n_epochs), instance.history)
