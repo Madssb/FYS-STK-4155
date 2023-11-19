@@ -90,7 +90,7 @@ def nn_regression_network_OLS(learning_method=SGD_const):
 
     X_train, X_test, target_train, target_test = train_test_split(X, z, test_size=0.2)
 
-    etas = np.logspace(0, -5, 6)
+    # etas = np.logspace(0, -5, 6)
     # l2 = np.logspace(0, -5, 6)
     neurons = [5, 10, 30, 50]
     layers = np.linspace(1, 3, 3)
@@ -478,7 +478,7 @@ if __name__ == '__main__':
 
     # gradient_decent_plots()
     # nn_regression_network_OLS(learning_method=SGD_const)
-    nn_regression_network_eta_l2(learning_method=SGD_const)
+    # nn_regression_network_eta_l2(learning_method=SGD_const)
     # nn_classification_network()
     # nn_classification_network_layers_neurons()
     # logreg_network(sklearn=False)

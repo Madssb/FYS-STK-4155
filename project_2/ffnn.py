@@ -117,19 +117,4 @@ class FeedForwardNeuralNetwork:
       input = output
     return output
 
-  def meta_forward_pass(self, parameters: tuple,
-                        features: np.ndarray):
-    """Compute forward pass for FFNN w.r.t parameters
-
-    Parameters
-    ----------
-    features: np.ndarray
-      Features.
-    
-    Returns
-    -------
-      float, shape: (n_outputs)
-    """
-    self.insert_parameters(parameters)
-    return self.__call__(features)
 

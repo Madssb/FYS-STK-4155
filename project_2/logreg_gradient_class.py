@@ -2,6 +2,9 @@ import numpy as np
 np.random.seed(2023)
 
 from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
+# from activation_functions import sigmoid
+from gradient_descents import StochasticGradientDescent, Adagrad, RMSProp, ADAM
+from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative
 
 class LogisticRegression:
 
@@ -145,7 +148,7 @@ if __name__ == '__main__':
     X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
 
     instance = LogisticRegression(X_train, target_train,L2=0.001)
-    instance.train(SDG_ADAM, n_epochs=100, init_lr=0.1)
+    instance.train(SGD_ADAM, n_epochs=100, init_lr=0.1)
     print(instance.weights)
     import matplotlib.pyplot as plt
     plt.plot(np.arange(instance.n_epochs), instance.history)
