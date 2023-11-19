@@ -1,10 +1,5 @@
 import numpy as np
-import jax.numpy as jnp
-from jax import grad
-import warnings
-from ffnn import FeedForwardNeuralNetwork
 from gradient_descents import *
-from activation_functions import sigmoid
 from loss_functions import mean_squared_error
 from tabulate import tabulate
 import time
@@ -12,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 from utilities import franke_function, my_figsize
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 
 def poly_features(input, degree):
@@ -124,37 +120,82 @@ def problem_n_convergence(tolerance):
     # parameters and model
     n_parameters = int((degree + 1) * (degree + 2) / 2)
     init_parameters = rng.random(n_parameters)
+    features_train, features_test, target_train, target_test = train_test_split(features, target)
     def meta_mse(parameters):
-        model = features @ parameters
-        return mean_squared_error(target, model)
-    problem = ProblemConfig(features, target, cost_grad_func, init_parameters, 2023)
+        model = features_train @ parameters
+        return mean_squared_error(target_train, model)
+    problem = ProblemConfig(features_train, target_train, cost_grad_func, init_parameters, 2023)
     convergence = ConvergenceConfig(meta_mse, tolerance)
-    return problem, convergence, target, features
+    return problem, convergence, target_test, features_test
 
 
-def gradient_descent(learning_rate: float):
+def gradient_descent():
     """Apply GD on model for Franke data with noise, with tuned learning rate.
     """
-    problem, convergence, target, features = problem_n_convergence(1e-2)
-    optimizer = GradientDescent(problem, convergence, 10e-6, 0)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    final_iter = optimizer.iteration
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
+    learning_rates = np.logspace(-6,-4,100)
+    convergence_epoch = np.empty_like(learning_rates)
+    mse = np.empty_like(learning_rates)
+    for i, learning_rate in enumerate(learning_rates):
+        problem, convergence, target, features = problem_n_convergence(1e-1)
+        optimizer = GradientDescent(problem, convergence, learning_rate, 0)
+        optimized_parameters = optimizer(10_000)
+        best_model = features @ optimized_parameters
+        mse[i] = mean_squared_error(target, best_model)
+        convergence_epoch[i] = optimizer.iteration
+    results = pd.DataFrame({
+        'Learning Rate': learning_rates,
+        'Convergence Epoch': convergence_epoch,
+        'Mean Squared Error': mse
+    })
+    fig = plt.figure(figsize=my_figsize())
+    plt.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    plt.xlabel("Learning rate $\eta$")
+    plt.xscale("log")
+    plt.ylabel("Convergence epoch")
+    fig.tight_layout()
+    plt.show()
+    fig.savefig("figures/regression/gd.pdf")
+    min_index = np.argmin(convergence_epoch)
+    print(f"most efficient learning rate: {learning_rates[min_index]},")
+    print(f"converged in {convergence_epoch[min_index]} e-pochs.")
 
 
 def gradient_descent_with_momentum():
     """Apply GDM on model
     """
-    problem, convergence, target, features = problem_n_convergence(1e-2)
-    optimizer = GradientDescent(problem, convergence, 10e-6, 0.9)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
+    learning_rates = np.logspace(-6, -4, 5)
+    print(learning_rates)
+    momentum_parameters = np.linspace(0, 0.9, 5)
+    mses = np.empty((learning_rates.shape[0], momentum_parameters.shape[0]))
+    convergence_epoch = np.empty_like(mses, dtype=int)
+
+    for i, learning_rate in enumerate(learning_rates):
+        for j, momentum_parameter in enumerate(momentum_parameters):
+            problem, convergence, target, features = problem_n_convergence(1e-1)
+            optimizer = GradientDescent(problem, convergence, learning_rate, momentum_parameter)
+            optimized_parameters = optimizer(10_000)
+            best_model = features @ optimized_parameters
+            mses[i, j] = mean_squared_error(target, best_model)
+            convergence_epoch[i, j] = optimizer.iteration
+
+    # Create a DataFrame from the convergence epochs values
+    results = pd.DataFrame(convergence_epoch, index=learning_rates, columns=momentum_parameters)
+
+    # Create a customized heatmap using Seaborn
+    plt.figure(figsize=(12, 8))  # Increase figure size
+    sns.set(font_scale=1.2)  # Adjust font size
+    sns.heatmap(results, cmap='coolwarm', annot=True, fmt="d", cbar=True, linewidths=.5, square=True)
+
+    # Customize the tick labels on the y-axis (Learning Rate)
+    ax = plt.gca()
+    yticks = ax.get_yticks()
+    ytick_labels = [f"{rate:.2g}" for rate in learning_rates]
+    ax.set_yticklabels(ytick_labels)
+    plt.xlabel('Momentum Parameter')
+    plt.ylabel('Learning Rate')
+    plt.title('Gradient Descent with Momentum Hyperparameter Tuning')
+    plt.tight_layout()
+    plt.savefig("figures/regression/gdm.pdf")
 
 
 def stochastic_gradient_descent():
@@ -296,8 +337,8 @@ def adam2():
 
 
 if __name__ == "__main__":
-    gradient_descent()
-    # gradient_descent_with_momentum()
+    # gradient_descent()
+    gradient_descent_with_momentum()
     # stochastic_gradient_descent()
     # stochastic_gradient_descent_varying_minibatch_size()
     # stochastic_gradient_descent_with_momentum()
