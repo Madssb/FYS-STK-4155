@@ -1,7 +1,7 @@
 import numpy as np
 np.random.seed(2023)
 
-from SGD import SGD_const, SDG_AdaGrad, SDG_RMSProp, SDG_ADAM
+from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
 
 class LogisticRegression:
 
@@ -68,7 +68,7 @@ class LogisticRegression:
 
         return [self.weights_gradient, self.bias_gradient]
     
-    def train(self, optimizer, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0):
+    def train(self, optimizer, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0, history=False, t_test=None, X_test=None):
 
         self.n_epochs = n_epochs
         model_parameters = [self.weights, self.bias]
@@ -77,15 +77,16 @@ class LogisticRegression:
                               gradient_func=self.back_propagation, 
                               init_model_parameters=model_parameters,
                               init_lr = init_lr, batch_size=batch_size,
-                              momentum = momentum,random_state=self.random_state)
+                              momentum = momentum, random_state=self.random_state)
         
-        self.history = []
+        if history == True:
+            self.history = np.zeros(n_epochs)
 
         for i in range(self.n_epochs):
             model_parameters = optimizer.advance(model_parameters)
             [self.weights, self.bias] = model_parameters
-            performance = self.evaluation(self.Y_full,self.predict(self.X_full))
-            self.history.append(performance)
+            if history == True:
+                self.history[i] = self.evaluation(t_test,self.predict(X_test))
            
 
 # Activation function
@@ -109,83 +110,85 @@ def accuracy_score(target, prediction):
     assert len(prediction) == n, "Not the same number of predictions as targets"
     return np.sum(indicator(target, prediction))/n
 
-import pandas as pd 
+if __name__ == '__main__':
 
-data = pd.read_csv('data.csv')
-"""
-The data file contains the following columns: 
-['id', 'diagnosis', 'radius_mean', 'texture_mean', 'perimeter_mean', 
-'area_mean', 'smoothness_mean', 'compactness_mean', 'concavity_mean', 
-'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean', 
-'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se', 
-'compactness_se', 'concavity_se', 'concave points_se', 'symmetry_se', 
-'fractal_dimension_se', 'radius_worst', 'texture_worst', 'perimeter_worst', 
-'area_worst', 'smoothness_worst', 'compactness_worst', 'concavity_worst', 
-'concave points_worst', 'symmetry_worst', 'fractal_dimension_worst', 'Unnamed: 32']
+    import pandas as pd 
 
-The column 'Unnamed: 32' only contains NaN values. 
-The id should not be relevant for the prediction. 
-I therefore drop these columns.
-The diagnosis corresponds to the target values.
-"""
+    data = pd.read_csv('data.csv')
+    """
+    The data file contains the following columns: 
+    ['id', 'diagnosis', 'radius_mean', 'texture_mean', 'perimeter_mean', 
+    'area_mean', 'smoothness_mean', 'compactness_mean', 'concavity_mean', 
+    'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean', 
+    'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se', 
+    'compactness_se', 'concavity_se', 'concave points_se', 'symmetry_se', 
+    'fractal_dimension_se', 'radius_worst', 'texture_worst', 'perimeter_worst', 
+    'area_worst', 'smoothness_worst', 'compactness_worst', 'concavity_worst', 
+    'concave points_worst', 'symmetry_worst', 'fractal_dimension_worst', 'Unnamed: 32']
 
-diagnosis = data['diagnosis']
-diagnosis_int = (diagnosis == 'M')*1
-predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
+    The column 'Unnamed: 32' only contains NaN values. 
+    The id should not be relevant for the prediction. 
+    I therefore drop these columns.
+    The diagnosis corresponds to the target values.
+    """
 
-X = np.array(predictors)
-target = np.array(diagnosis_int)
+    diagnosis = data['diagnosis']
+    diagnosis_int = (diagnosis == 'M')*1
+    predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
 
-
-#Shuffle and split into training and test data
-from sklearn.model_selection import train_test_split
-X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
-
-instance = LogisticRegression(X_train, target_train,L2=0.001)
-instance.train(SDG_ADAM, n_epochs=100, init_lr=0.1)
-print(instance.weights)
-import matplotlib.pyplot as plt
-plt.plot(np.arange(instance.n_epochs), instance.history)
-plt.show()
-quit()
+    X = np.array(predictors)
+    target = np.array(diagnosis_int)
 
 
-# Explore parameter space
-etas = np.logspace(-5,1,7)
-lmbds = np.logspace(-5,1,7)
-train_accuracy = np.zeros((len(etas), len(lmbds)))
-test_accuracy = np.zeros((len(etas), len(lmbds)))
+    #Shuffle and split into training and test data
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
 
-for i, eta in enumerate(etas):
-    for j, lmbd in enumerate(lmbds):
+    instance = LogisticRegression(X_train, target_train,L2=0.001)
+    instance.train(SDG_ADAM, n_epochs=100, init_lr=0.1)
+    print(instance.weights)
+    import matplotlib.pyplot as plt
+    plt.plot(np.arange(instance.n_epochs), instance.history)
+    plt.show()
+    quit()
 
-        instance = LogisticRegression(X_train, target_train,
-                                L2 = lmbd)
-        instance.train(optimizer=StochasticGradientDescent, init_lr=eta, batch_size=100, n_epochs=50)
 
-        train_accuracy[i, j] = accuracy_score(target_train, instance.predict(X_train)) 
-        test_accuracy[i, j] = accuracy_score(target_test, instance.predict(X_test))
+    # Explore parameter space
+    etas = np.logspace(-5,1,7)
+    lmbds = np.logspace(-5,1,7)
+    train_accuracy = np.zeros((len(etas), len(lmbds)))
+    test_accuracy = np.zeros((len(etas), len(lmbds)))
 
-import seaborn as sns
-import matplotlib.pyplot as plt
+    for i, eta in enumerate(etas):
+        for j, lmbd in enumerate(lmbds):
 
-train_accuracy = pd.DataFrame(train_accuracy, columns = lmbds, index = etas)
-test_accuracy = pd.DataFrame(test_accuracy, columns = lmbds, index = etas)
+            instance = LogisticRegression(X_train, target_train,
+                                    L2 = lmbd)
+            instance.train(optimizer=StochasticGradientDescent, init_lr=eta, batch_size=100, n_epochs=50)
 
-sns.set()
-fig, ax = plt.subplots(figsize = (10, 10))
-sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
-ax.set_title("Training Accuracy")
-ax.set_ylabel("$\eta$")
-ax.set_xlabel("$\lambda$")
-plt.savefig('figures/lnreg_classification/train_accuracy.pdf')
-plt.savefig('figures/lnreg_classification/train_accuracy.png')
+            train_accuracy[i, j] = accuracy_score(target_train, instance.predict(X_train)) 
+            test_accuracy[i, j] = accuracy_score(target_test, instance.predict(X_test))
 
-sns.set()
-fig, ax = plt.subplots(figsize = (10, 10))
-sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
-ax.set_title("Test Accuracy")
-ax.set_ylabel("$\eta$")
-ax.set_xlabel("$\lambda$")
-plt.savefig('figures/lnreg_classification/test_accuracy.pdf')
-plt.savefig('figures/lnreg_classification/test_accuracy.png')
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    train_accuracy = pd.DataFrame(train_accuracy, columns = lmbds, index = etas)
+    test_accuracy = pd.DataFrame(test_accuracy, columns = lmbds, index = etas)
+
+    sns.set()
+    fig, ax = plt.subplots(figsize = (10, 10))
+    sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
+    ax.set_title("Training Accuracy")
+    ax.set_ylabel("$\eta$")
+    ax.set_xlabel("$\lambda$")
+    plt.savefig('figures/lnreg_classification/train_accuracy.pdf')
+    plt.savefig('figures/lnreg_classification/train_accuracy.png')
+
+    sns.set()
+    fig, ax = plt.subplots(figsize = (10, 10))
+    sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
+    ax.set_title("Test Accuracy")
+    ax.set_ylabel("$\eta$")
+    ax.set_xlabel("$\lambda$")
+    plt.savefig('figures/lnreg_classification/test_accuracy.pdf')
+    plt.savefig('figures/lnreg_classification/test_accuracy.png')
