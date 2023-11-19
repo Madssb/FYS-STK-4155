@@ -1,8 +1,18 @@
 import numpy as np
 import jax.numpy as jnp
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from jax import grad
-from ffnn import FeedForwardNeuralNetwork
-from gradient_descents import GradientDescent
+# from ffnn import FeedForwardNeuralNetwork
+from nn_class import FeedForwardNeuralNetwork
+from FrankeFunction import franke_function
+from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
+from nn_class import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative, identity
+from nn_class import hard_classifier, indicator, accuracy_score, MSE, R2
+from sklearn.model_selection import train_test_split
+# from gradient_descents import GradientDescent
 from activation_functions import sigmoid
 from loss_functions import mean_squared_error
 
@@ -83,5 +93,59 @@ def simple_ffnn_xor():
   output = network(features)
   print(output)
 
+def nn_regression_network_OLS(learning_method=SGD_const):
+    points = 100
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    z = franke_function(x, y)
+    X = np.array([x, y]).T
+
+    etas = np.logspace(0, -5, 6)
+    # l2 = np.logspace(0, -5, 6)
+    neurons = [5, 10, 30, 50]
+    layers = np.linspace(1, 3, 3)
+    batch_sizes = [2**i for i in range(4, 8)]
+
+    MSE_lay_neur = np.zeros((len(layers),len(neurons)))
+    R2_lay_neur = np.zeros((len(layers),len(neurons)))
+
+    # constant learning rate
+
+    for i, l in enumerate(layers):
+        for j, n in enumerate(neurons):
+            nn = FeedForwardNeuralNetwork(X, z, n_hidden_layers=int(l), n_hidden_neurons=n, L2=0,
+                                          output_activation_function=identity,
+                                          hidden_activation_function=sigmoid,
+                                          hidden_activation_derivative=sigmoid_derivative)
+            nn.train(learning_method, n_epochs=300, init_lr=0.1, batch_size=len(z))
+            MSE_lay_neur[i, j] = MSE(z, nn.predict(X))
+            R2_lay_neur[i, j] = R2(z, nn.predict(X))
+    
+    MSE_scores = pd.DataFrame(MSE_lay_neur, columns = neurons, index = layers)
+    R2_scores = pd.DataFrame(MSE_lay_neur, columns = neurons, index = layers)
+
+    sns.set()
+    fig, ax = plt.subplots(figsize = (10, 10))
+    sns.heatmap(MSE_scores, annot=True, ax=ax, cmap="viridis")
+    ax.set_title(f'SGD_const MSE')
+    ax.set_xlabel("$neurons$")
+    ax.set_ylabel("$layers$")
+
+    sns.set()
+    fig, ax = plt.subplots(figsize = (10, 10))
+    sns.heatmap(R2_scores, annot=True, ax=ax, cmap="viridis")
+    ax.set_title(f'SGD_const R2')
+    ax.set_xlabel("$neurons$")
+    ax.set_ylabel("$layers$")
+
+    plt.show()
+
+
+
+    # plt.savefig('figures/nn_classification/train_accuracy_ReLU.pdf')
+    # plt.savefig('figures/nn_classification/train_accuracy_ReLU.png')
+
+
 if __name__ == "__main__":
-    simple_ffnn_xor()
+    # simple_ffnn_xor()
+    nn_regression_network_OLS(learning_method=SGD_const)
