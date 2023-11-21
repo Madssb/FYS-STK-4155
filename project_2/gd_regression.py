@@ -51,6 +51,9 @@ def cost_grad_func(features, target, parameters):
     return -2 * features.T @ (target - features @ parameters)
 
 
+def grad_func():
+    pass
+
 def franke_function(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """
     Evaluate Franke's function for given x, y mesh.
@@ -118,7 +121,8 @@ def features_polynomial_2d(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndar
 
 
 def problem_n_convergence(tolerance, divergence_tol=1e3):
-    """Generate Franke Function mesh with noise"""
+    """Generate Franke Function mesh with noise
+    """
     rng = np.random.default_rng(2023)
     x = rng.random(50)
     y = rng.random(50)
@@ -144,10 +148,10 @@ def problem_n_convergence(tolerance, divergence_tol=1e3):
 
 
 def gradient_descent():
-    """Apply GD on model for Franke data with noise, with tuned learning rate.
+    """apply GD on franke func; tweak initial learning rate for fastest convergence.
     """
     learning_rates = np.logspace(-6,-4,100)
-    convergence_epoch = np.empty_like(learning_rates)
+    convergence_epoch = np.empty_like(learning_rates, dtype=int)
     mse = np.empty_like(learning_rates)
     for i, learning_rate in enumerate(learning_rates):
         problem, convergence, target, features = problem_n_convergence(1e-1)
@@ -156,28 +160,25 @@ def gradient_descent():
         best_model = features @ optimized_parameters
         mse[i] = mean_squared_error(target, best_model)
         convergence_epoch[i] = optimizer.iteration
-    results = pd.DataFrame({
-        'Learning Rate': learning_rates,
-        'Convergence Epoch': convergence_epoch,
-        'Mean Squared Error': mse
-    })
-    fig = plt.figure(figsize=my_figsize())
-    plt.scatter(learning_rates, convergence_epoch, c='black', s=1)
-    plt.xlabel("Learning rate $\eta$")
-    plt.xscale("log")
-    plt.ylabel("Convergence epoch")
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel("Learning rate $\eta$")
+    ax.set_xscale("log")
+    ax.set_ylabel("Convergence epoch")
     fig.tight_layout()
-    plt.show()
     fig.savefig("figures/regression/gd.pdf")
     min_index = np.argmin(convergence_epoch)
-    print(f"most efficient learning rate: {learning_rates[min_index]},")
-    print(f"converged in {convergence_epoch[min_index]} e-pochs.")
+    best_convergence_epoch = convergence_epoch[min_index]
+    best_learning_rate = learning_rates[min_index]
+    return best_convergence_epoch, best_learning_rate
+    
 
 def gd_show_divergence():
     """Demonstrate MSE exploding when learning rate is too big
     """
     learning_rates = np.linspace(90e-6,170e-6,10)
-    convergence_epoch = np.empty_like(learning_rates)
+    convergence_epoch = np.empty_like(learning_rates, dtype=int)
     mse = np.empty_like(learning_rates)
     for i, learning_rate in enumerate(learning_rates):
         problem, convergence, target, features = problem_n_convergence(1e-1,np.inf)
@@ -186,83 +187,97 @@ def gd_show_divergence():
         best_model = features @ optimized_parameters
         mse[i] = mean_squared_error(target, best_model)
         convergence_epoch[i] = optimizer.iteration
-    results = pd.DataFrame({
-        'Learning Rate': learning_rates,
-        'Convergence Epoch': convergence_epoch,
-        'Mean Squared Error': mse
-    })
-    fig = plt.figure(figsize=my_figsize())
-    plt.scatter(learning_rates, mse, c='black', s=1)
-    plt.xlabel("Learning rate $\eta$")
-    plt.xscale("log")
-    plt.ylabel("MSE")
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    ax.set_xscale("log")
+    ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates], rotation=45)
+    ax.set_xlabel("Learning rate $\eta$")
+    ax.set_ylabel("Convergence epoch")
     fig.tight_layout()
-    plt.show()
+    fig.savefig("figures/regression/divergence.pdf")
 
 
 def gradient_descent_with_momentum():
-    """Apply GDM on model
+    """Apply GDM on model, search for fastest convergence
     """
     learning_rates = np.logspace(-6, -4, 5)
-    print(learning_rates)
-    momentum_parameters = np.linspace(0, 0.9, 5)
-    mses = np.empty((learning_rates.shape[0], momentum_parameters.shape[0]))
+    momentum_params = np.linspace(0, 0.9, 5)
+    mses = np.empty((learning_rates.shape[0], momentum_params.shape[0]))
     convergence_epoch = np.empty_like(mses, dtype=int)
 
     for i, learning_rate in enumerate(learning_rates):
-        for j, momentum_parameter in enumerate(momentum_parameters):
+        for j, momentum_param in enumerate(momentum_params):
             problem, convergence, target, features = problem_n_convergence(1e-1)
-            optimizer = GradientDescent(problem, convergence, learning_rate, momentum_parameter)
+            optimizer = GradientDescent(problem, convergence, learning_rate, momentum_param)
             optimized_parameters = optimizer(10_000)
             best_model = features @ optimized_parameters
             mses[i, j] = mean_squared_error(target, best_model)
             convergence_epoch[i, j] = optimizer.iteration
-
     # Create a DataFrame from the convergence epochs values
-    results = pd.DataFrame(convergence_epoch, index=learning_rates, columns=momentum_parameters)
+    results = pd.DataFrame(convergence_epoch, index=learning_rates, columns=momentum_params)
+    fig, ax = plt.subplots()
+    sns.heatmap(results, cmap='coolwarm', annot=True, fmt="d", cbar=True, linewidths=.5, square=True,
+                cbar_kws={'label': 'Convergence e-poch'},
+                xticklabels=[f"{momentum_param:.3g}" for momentum_param in momentum_params],
+                yticklabels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel('Momentum Parameter')
+    ax.set_ylabel('Learning Rate')
+    fig.tight_layout()
+    fig.savefig("figures/regression/gdm.pdf")
+    min_index_flat = np.argmin(convergence_epoch)
+    min_indices = np.unravel_index(min_index_flat, convergence_epoch.shape)
+    best_convergence_epoch = convergence_epoch[min_indices]
+    best_learning_rate = learning_rates[min_indices[0]]
+    best_momentum_param = momentum_params[min_indices[1]]
+    return best_convergence_epoch, best_learning_rate, best_momentum_param
 
-    # Create a customized heatmap using Seaborn
-    plt.figure(figsize=(12, 8))  # Increase figure size
-    sns.set(font_scale=1.2)  # Adjust font size
-    sns.heatmap(results, cmap='coolwarm', annot=True, fmt="d", cbar=True, linewidths=.5, square=True)
-
-    # Customize the tick labels on the y-axis (Learning Rate)
-    ax = plt.gca()
-    yticks = ax.get_yticks()
-    ytick_labels = [f"{rate:.2g}" for rate in learning_rates]
-    ax.set_yticklabels(ytick_labels)
-    plt.xlabel('Momentum Parameter')
-    plt.ylabel('Learning Rate')
-    plt.title('Gradient Descent with Momentum Hyperparameter Tuning')
-    plt.tight_layout()
-    plt.savefig("figures/regression/gdm.pdf")
 
 
 def stochastic_gradient_descent():
     """apply SGD on model for Franke data with noise, with tuned learning rate
     """
-    problem, convergence, target, features = problem_n_convergence()
-    optimizer = StochasticGradientDescent(problem, convergence, 7e-6, 0, 64)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
+    # problem, convergence, target, features = problem_n_convergence()
+    # optimizer = StochasticGradientDescent(problem, convergence, 7e-6, 0, 64)
+    # optimized_parameters = optimizer(10_000)
+    # best_model = features @ optimized_parameters
+    # mse_gd = mean_squared_error(target, best_model)
+    # print(optimizer)
+    # print(f"MSE: {mse_gd:.4g}")
+    learning_rates = np.logspace(-6,-4,100)
+    convergence_epoch = np.empty_like(learning_rates, dtype=int)
+    mse = np.empty_like(learning_rates)
+    for i, learning_rate in enumerate(learning_rates):
+        problem, convergence, target, features = problem_n_convergence(1e-1)
+        optimizer = StochasticGradientDescent(problem, convergence, learning_rate, 0, 128)
+        optimized_parameters = optimizer(10_000)
+        best_model = features @ optimized_parameters
+        mse[i] = mean_squared_error(target, best_model)
+        convergence_epoch[i] = optimizer.iteration
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel("Learning rate $\eta$")
+    ax.set_ylabel("Convergence epoch")
+    ax.set_xscale("log")
+    fig.tight_layout()
+    fig.savefig("figures/regression/sgd.pdf")
+    min_index = np.argmin(convergence_epoch)
+    best_convergence_epoch = convergence_epoch[min_index]
+    best_learning_rate = learning_rates[min_index]
+    return best_convergence_epoch, best_learning_rate
 
 
 def stochastic_gradient_descent_varying_minibatch_size():
     """apply SGD as specified in `stochastic_gradient_descent` with varying
     mini bath sizes.
     """
-    problem, convergence, target, features = problem_n_convergence(5e-2)
-    mini_batch_sizes = [1, 2, 4, 8, 9, 16, 17, 32, 33, 64, 65, 128, 129]
+    mini_batch_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
     convergence_epoch = []
     mses = []
     cpu_times = []
-    print(convergence)
     for mini_batch_size in mini_batch_sizes:
-        problem, convergence, target, features = problem_n_convergence()
-        optimizer = StochasticGradientDescent(problem, convergence, 0.4e-4, 0, mini_batch_size)
+        problem, convergence, target, features = problem_n_convergence(1e-1)
+        optimizer = StochasticGradientDescent(problem, convergence, 9.11e-5, 0, mini_batch_size)
         start_time = time.process_time()
         optimized_parameters = optimizer(10_000)
         end_time = time.process_time()
@@ -271,115 +286,164 @@ def stochastic_gradient_descent_varying_minibatch_size():
         convergence_epoch.append(optimizer.iteration)
         mses.append(mse_gd)
         cpu_times.append(end_time - start_time)
-        print(optimizer)
-        print(f"MSE: {mse_gd:.4g}")
-    mini_batch_size_arr = np.array(mini_batch_sizes)
-    convergence_iteration_arr = np.array(convergence_epoch)
     data = list(zip(mini_batch_sizes, convergence_epoch, cpu_times))
     print(tabulate(data, headers=["mini batch size", "epoch of convergence", "cpu time"], tablefmt="latex"))
 
 def stochastic_gradient_descent_with_momentum():
-    """Test Stochastic Gradient Descent"""
-    problem, convergence, target, features = problem_n_convergence(1e-2)
+    """Test Stochastic Gradient Descent
+    """
+
     learning_rates = np.logspace(-6, -5, 5)
-    momentum_parameters = np.linspace(0,0.9,5) 
-    mses = np.empty((5, 5))
-    mses_list = []
-    
-    for learning_rate in learning_rates:
-        for momentum_parameter in momentum_parameters:
-            try:
-                optimizer = StochasticGradientDescent(problem, convergence, learning_rate, momentum_parameter, 128)
-                optimized_parameters = optimizer(1_000)
-                best_model = features @ optimized_parameters
-                mse = mean_squared_error(target, best_model)
-                
-                # Append the results to the list
-                mses_list.append({"Learning Rate": learning_rate, "Momentum Parameter": momentum_parameter, "MSE": mse})
-                
-                # Print the result
-                print(optimizer)
-                print(f"MSE: {mse:.4g}")
-            except ValueError:
-                # If optimization diverged, you can skip this iteration
-                continue
-    
-    # Create a DataFrame from the list of results
-    mses_df = pd.DataFrame(mses_list)
+    momentum_params = np.linspace(0,0.9,5) 
+    mse = np.empty((5, 5), dtype=float)
+    convergence_epoch = np.empty_like(mse, dtype=int)
+    for i, learning_rate in enumerate(learning_rates):
+        for j, momentum_param in enumerate(momentum_params):
+            problem, convergence, target, features = problem_n_convergence(1e-1)
+            optimizer = StochasticGradientDescent(problem, convergence, learning_rate, momentum_param, 128)
+            optimized_parameters = optimizer(10_000)
+            best_model = features @ optimized_parameters
+            mse[i, j] = mean_squared_error(target, best_model)
+            convergence_epoch[i, j] = optimizer.iteration
+            print(i+j)
+    results = pd.DataFrame(convergence_epoch, index=learning_rates, columns=momentum_params)
+    fig,ax = plt.subplots(figsize=(12, 8))
+    sns.heatmap(results, cmap='coolwarm', annot=True, fmt="d", cbar=True, linewidths=.5, square=True,
+                cbar_kws={'label': 'Convergence e-poch'},
+                xticklabels=[f"{momentum_param:.3g}" for momentum_param in momentum_params],
+                yticklabels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel('Momentum Parameter')
+    ax.set_ylabel('Learning Rate')
+    fig.tight_layout()
+    plt.savefig("figures/regression/sgdm.pdf")
+    min_index_flat = np.argmin(convergence_epoch)
+    min_indices = np.unravel_index(min_index_flat, convergence_epoch.shape)
+    best_convergence_epoch = convergence_epoch[min_indices]
+    best_learning_rate = learning_rates[min_indices[0]]
+    best_momentum_param = momentum_params[min_indices[1]]
+    return best_convergence_epoch, best_learning_rate, best_momentum_param
 
-    # Pivot the DataFrame to create a 2D table for the heatmap
-    heatmap_data = mses_df.pivot_table(index="Learning Rate", columns="Momentum Parameter", values="MSE")
-
-    # Create the heatmap using Seaborn
-    plt.figure()
-    sns.heatmap(heatmap_data, annot=True, cmap='coolwarm', fmt=".4f", linewidths=0.5)
-    plt.xlabel("Momentum Parameter")
-    plt.ylabel("Learning Rate")
-
-    # Set the number of digits on the axes and add labels
-    plt.xticks(np.arange(len(heatmap_data.columns)), heatmap_data.columns.map(lambda x: f"{x:.4f}"), rotation=45)
-    plt.yticks(np.arange(len(heatmap_data.index)), heatmap_data.index.map(lambda x: f"{x:.4f}"))
-    plt.tight_layout()
-    plt.show()
 
 def adagrad():
-    """Test adagrad"""
-    problem, convergence, target, features = problem_n_convergence()
-    optimizer = Adagrad(problem, convergence, 0.06, 128)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
-
+    """Test adagrad
+    """
+    learning_rates = np.logspace(1,-1,100)
+    convergence_epoch = np.empty_like(learning_rates, dtype=int)
+    mse = np.empty_like(learning_rates)
+    for i, learning_rate in enumerate(learning_rates):
+        problem, convergence, target, features = problem_n_convergence(1e-1)
+        optimizer = Adagrad(problem, convergence, learning_rate, 128)
+        optimized_parameters = optimizer(10_000)
+        best_model = features @ optimized_parameters
+        mse[i] = mean_squared_error(target, best_model)
+        convergence_epoch[i] = optimizer.iteration
+        print(i)
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel("Learning rate $\eta$")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_ylabel("Convergence epoch")
+    fig.tight_layout()
+    fig.savefig("figures/regression/adagrad.pdf")
+    min_index = np.argmin(convergence_epoch)
+    best_convergence_epoch = convergence_epoch[min_index]
+    best_learning_rate = learning_rates[min_index]
+    return best_convergence_epoch, best_learning_rate
 
 def rmsprop():
-    """Test RMSProp"""
-    problem, convergence, target, features = problem_n_convergence()
-    optimizer = RMSProp(problem, convergence, 900e-6, 128, 0.99982)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
+    """Test RMSProp
+    """
+    learning_rates = np.logspace(-2,0,5)
+    decay_rates = np.linspace(0.5, 0.99, 5)
+    convergence_epoch = np.empty((learning_rates.shape[0], decay_rates.shape[0]), dtype=int)
+    mse = np.empty_like(convergence_epoch)
+    counter = 0
+    for i, learning_rate in enumerate(learning_rates):
+        for j, decay_rate in enumerate(decay_rates):
+            problem, convergence, target, features = problem_n_convergence(1e-1)
+            optimizer = RMSProp(problem, convergence, learning_rate, 128, decay_rate)
+            optimized_parameters = optimizer(1_000)
+            best_model = features @ optimized_parameters
+            mse[i, j] = mean_squared_error(target, best_model)
+            convergence_epoch[i, j] = optimizer.iteration
+            counter += 1
+            print(counter)
+    results = pd.DataFrame(convergence_epoch, index=learning_rates, columns=decay_rates)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    sns.heatmap(results, cmap='coolwarm', annot=True, fmt="d", cbar=True, linewidths=.5, square=True,
+                cbar_kws={'label': 'Convergence e-poch'},
+                xticklabels=[f"{decay_rate:.3g}" for decay_rate in decay_rates],
+                yticklabels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel('decay rate')
+    ax.set_ylabel('Learning Rate')
+    fig.tight_layout()
+    fig.savefig("figures/regression/rmsprop.pdf")
+    min_index_flat = np.argmin(convergence_epoch)
+    min_indices = np.unravel_index(min_index_flat, convergence_epoch.shape)
+    best_convergence_epoch = convergence_epoch[min_indices]
+    best_learning_rate = learning_rates[min_indices[0]]
+    best_decay_rate = decay_rates[min_indices[1]]
+    return best_convergence_epoch, best_learning_rate, best_decay_rate
+
 
 
 def adam():
     """
     Test ADAM
     """
-    problem, convergence, target, features = problem_n_convergence()
-    optimizer = ADAM(problem, convergence, 1.64e-2, 128)
-    optimized_parameters = optimizer(10_000)
-    best_model = features @ optimized_parameters
-    mse_gd = mean_squared_error(target, best_model)
-    print(optimizer)
-    print(f"MSE: {mse_gd:.4g}")
-
-def adam2():
-    """
-    Test ADAM
-    """
-    mini_batch_sizes = [2,4,8,9,16,17,32,33,64,65,128,129]
-    convergence_epoch = []
-    cpu_times = []
-    for mini_batch_size in mini_batch_sizes:
-        problem, convergence, target, features = problem_n_convergence()
-        optimizer = ADAM(problem, convergence, 1.64e-2, mini_batch_size)
-        start = time.process_time()
+    learning_rates = np.logspace(-2,0,100)
+    mse = np.empty_like(learning_rates, dtype=float)
+    convergence_epoch = np.empty_like(mse, dtype=int)
+    for i, learning_rate in enumerate(learning_rates):
+        problem, convergence, target, features = problem_n_convergence(1e-1)
+        optimizer = ADAM(problem, convergence, learning_rate, 128)
         optimized_parameters = optimizer(10_000)
-        end = time.process_time()
-        cpu_times.append(end - start)
-        convergence_epoch.append(optimizer.iteration)
         best_model = features @ optimized_parameters
-    data = list(zip(mini_batch_sizes, convergence_epoch, cpu_times))
-    print(tabulate(data, headers=["mini batch size", "epoch of convergence", "cpu time"]))
+        mse[i] = mean_squared_error(target, best_model)
+        convergence_epoch[i] = optimizer.iteration
+        print(i)
+    fig, ax = plt.subplots(figsize=my_figsize())
+    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
+    ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates])
+    ax.set_xlabel("Learning rate $\eta$")
+    ax.set_ylabel("Convergence epoch")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    fig.tight_layout()
+    fig.savefig("figures/regression/adam.pdf")
+    min_index = np.argmin(convergence_epoch)
+    best_convergence_epoch = convergence_epoch[min_index]
+    best_learning_rate = learning_rates[min_index]
+    return best_convergence_epoch, best_learning_rate
+
+
+def compare_gds():
+    """Collect best performing optimizers and display as table. Additionally calls every single function.
+    """
+    optimizers = np.array(["GD", "GDM", "SGD", "SGDM", "Adagrad", "RMSProp", "ADAM"])
+    funcs = [gradient_descent, gradient_descent_with_momentum, stochastic_gradient_descent, stochastic_gradient_descent_with_momentum, adagrad, rmsprop, adam]
+    convergence_epochs = np.empty_like(optimizers, dtype=int)
+    learning_rates = np.empty_like(optimizers, dtype=float)
+    for idx, func in enumerate(funcs):
+        tuple = func()
+        convergence_epochs[idx] = tuple[0]
+        learning_rates[idx] = tuple[1]
+    table_data = zip(optimizers, convergence_epochs, learning_rates)
+    print(tabulate(table_data, headers=["Optimizer", "Convergence Epochs", "Learning Rate"], tablefmt="latex"))
+
+
+def cost_grad_func_ridge():
+    """ehm
+    """
+
 
 
 if __name__ == "__main__":
     # gradient_descent()
     # gradient_descent_with_momentum()
-    gd_show_divergence()
+    # gd_show_divergence()
     # stochastic_gradient_descent()
     # stochastic_gradient_descent_varying_minibatch_size()
     # stochastic_gradient_descent_with_momentum()
@@ -387,3 +451,6 @@ if __name__ == "__main__":
     # rmsprop()
     # adam()
     # adam2()
+    # compare_gds()
+    gd_show_divergence()
+    plt.show()
