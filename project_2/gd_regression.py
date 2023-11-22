@@ -188,11 +188,12 @@ def gd_show_divergence():
         mse[i] = mean_squared_error(target, best_model)
         convergence_epoch[i] = optimizer.iteration
     fig, ax = plt.subplots(figsize=my_figsize())
-    ax.scatter(learning_rates, convergence_epoch, c='black', s=1)
-    ax.set_xscale("log")
+    ax.scatter(learning_rates, mse, c='black', s=1)
+    #ax.set_xscale("log")
     ax.set_xticks(learning_rates, labels=[f"{learning_rate:.3g}" for learning_rate in learning_rates], rotation=45)
+    ax.set_yscale("log")
     ax.set_xlabel("Learning rate $\eta$")
-    ax.set_ylabel("Convergence epoch")
+    ax.set_ylabel("MSE")
     fig.tight_layout()
     fig.savefig("figures/regression/divergence.pdf")
 
@@ -440,17 +441,18 @@ def cost_grad_func_ridge():
 
 
 
+
 if __name__ == "__main__":
     # gradient_descent()
     # gradient_descent_with_momentum()
     # gd_show_divergence()
     # stochastic_gradient_descent()
     # stochastic_gradient_descent_varying_minibatch_size()
-    # stochastic_gradient_descent_with_momentum()
+    stochastic_gradient_descent_with_momentum()
     # adagrad()
     # rmsprop()
     # adam()
     # adam2()
     # compare_gds()
-    gd_show_divergence()
+    # gd_show_divergence()
     plt.show()
