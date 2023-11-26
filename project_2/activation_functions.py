@@ -30,3 +30,6 @@ def leaky_ReLU(x):
 
 def leaky_ReLU_derivative(x, alpha=0.01):
     return np.where(x>0, 1, alpha)
+
+def identity(x):
+    return x
