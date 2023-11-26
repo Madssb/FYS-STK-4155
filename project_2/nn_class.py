@@ -3,6 +3,7 @@
 
 import numpy as np
 from random import random, seed
+from activation_functions import identity
 np.random.seed(2023)
 
 # Import SGD optimizers
@@ -308,88 +309,4 @@ class FeedForwardNeuralNetwork:
             # Store model performance
             if history == True:
                 for j, eval_func in enumerate(evaluation_func):
-                    self.history[j, i] = eval_func(self.Y_full, self.predict(self.X_full))
-
-
-if __name__ == '__main__':
-    # Import data
-
-    import pandas as pd 
-
-    data = pd.read_csv('data.csv')
-    """
-    The data file contains the following columns: 
-    ['id', 'diagnosis', 'radius_mean', 'texture_mean', 'perimeter_mean', 
-    'area_mean', 'smoothness_mean', 'compactness_mean', 'concavity_mean', 
-    'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean', 
-    'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se', 
-    'compactness_se', 'concavity_se', 'concave points_se', 'symmetry_se', 
-    'fractal_dimension_se', 'radius_worst', 'texture_worst', 'perimeter_worst', 
-    'area_worst', 'smoothness_worst', 'compactness_worst', 'concavity_worst', 
-    'concave points_worst', 'symmetry_worst', 'fractal_dimension_worst', 'Unnamed: 32']
-
-    The column 'Unnamed: 32' only contains NaN values. 
-    The id should not be relevant for the prediction. 
-    I therefore drop these columns.
-    The diagnosis corresponds to the target values.
-    """
-
-    diagnosis = data['diagnosis']
-    diagnosis_int = (diagnosis == 'M')*1
-    predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
-
-    X = np.array(predictors)
-    target = np.array(diagnosis_int)
-
-    #Shuffle and split into training and test data
-    from sklearn.model_selection import train_test_split
-    X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.4)
-
-    instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
-                                output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
-    instance.train(SGD_AdaGrad, evaluation_func=accuracy_score, n_epochs=50, batch_size=100, init_lr=0.01)
-    import matplotlib.pyplot as plt
-    plt.plot(np.arange(instance.n_epochs), instance.history)
-    plt.show()
-    exit()
-
-
-    # Explore parameter space
-    etas = np.logspace(-5,1,7)
-    lmbds = np.logspace(-5,1,7)
-    train_accuracy = np.zeros((len(etas), len(lmbds)))
-    test_accuracy = np.zeros((len(etas), len(lmbds)))
-
-    for i, eta in enumerate(etas):
-        for j, lmbd in enumerate(lmbds):
-
-            instance = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=100, L2=lmbd,
-                                output_activation_function=sigmoid, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
-            instance.train(SGD_ADAM, evaluation_func=accuracy_score, n_epochs=50, batch_size=100, init_lr=eta)
-
-            train_accuracy[i, j] = accuracy_score(target_train, instance.predict(X_train)) 
-            test_accuracy[i, j] = accuracy_score(target_test, instance.predict(X_test))
-
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-
-    train_accuracy = pd.DataFrame(train_accuracy, columns = lmbds, index = etas)
-    test_accuracy = pd.DataFrame(test_accuracy, columns = lmbds, index = etas)
-
-    sns.set()
-    fig, ax = plt.subplots(figsize = (10, 10))
-    sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
-    ax.set_title("Training Accuracy")
-    ax.set_ylabel("$\eta$")
-    ax.set_xlabel("$\lambda$")
-    plt.savefig('figures/nn_classification/train_accuracy_class.pdf')
-    plt.savefig('figures/nn_classification/train_accuracy_class.png')
-
-    sns.set()
-    fig, ax = plt.subplots(figsize = (10, 10))
-    sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
-    ax.set_title("Test Accuracy")
-    ax.set_ylabel("$\eta$")
-    ax.set_xlabel("$\lambda$")
-    plt.savefig('figures/nn_classification/test_accuracy_class.pdf')
-    plt.savefig('figures/nn_classification/test_accuracy_class.png')
+                    self.history[j, i] = eval_func(t_test, self.predict(X_test))
