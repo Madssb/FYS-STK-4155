@@ -3,7 +3,6 @@
 
 import numpy as np
 
-
 class SGD_const:
     """
     Stochastic Gradient Descent with fixed learning rate
