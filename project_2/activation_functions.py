@@ -1,7 +1,6 @@
-import jax.numpy as jnp
 import numpy as np
 
-def sigmoid(activation):
+def sigmoid(x):
     """Compute out for some neuron.
 
     Parameters
@@ -13,7 +12,7 @@ def sigmoid(activation):
     -------
       np.ndarray
     """
-    return 1 / (1 + jnp.exp(-activation))
+    return 1./(1 + np.exp(-x))
 
 
 def sigmoid_derivative(x):
