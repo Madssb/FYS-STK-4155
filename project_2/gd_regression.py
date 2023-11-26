@@ -670,14 +670,16 @@ def gradient_descent_lasso():
     fig.savefig("figures/regression/gd_lasso_mse.pdf")
 
 if __name__ == "__main__":
+    """Comment an uncomment function calls as needed
+    """
     # gradient_descent()
     # gradient_descent_autograd()
     # gradient_descent_with_momentum()
     # stochastic_gradient_descent()
-    stochastic_gradient_descent_varying_minibatch_size()
+    # stochastic_gradient_descent_varying_minibatch_size()
     # stochastic_gradient_descent_with_momentum()
     # adagrad()
-    # rmsprop()
+    rmsprop()
     # adam()
     # compare_gds()
     # gd_show_divergence()
