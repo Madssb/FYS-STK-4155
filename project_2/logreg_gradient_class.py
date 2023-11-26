@@ -1,10 +1,21 @@
 import numpy as np
 np.random.seed(2023)
 
-from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
-# from activation_functions import sigmoid
-from gradient_descents import StochasticGradientDescent, Adagrad, RMSProp, ADAM
-from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative
+from activation_functions import sigmoid
+
+def hard_classifier(probability):
+    return (probability >= 0.5)*1
+
+def indicator(target, prediction):
+    return(target==prediction)*1
+    
+def accuracy_score(target, prediction):
+    """
+    Returns the average number of correct predictions
+    """
+    n = len(target)
+    assert len(prediction) == n, "Not the same number of predictions as targets"
+    return np.sum(indicator(target, prediction))/n
 
 class LogisticRegression:
 
@@ -89,109 +100,5 @@ class LogisticRegression:
             model_parameters = optimizer.advance(model_parameters)
             [self.weights, self.bias] = model_parameters
             if history == True:
-                self.history[i] = self.evaluation(t_test,self.predict(X_test))
+                self.history[i] = self.evaluation(t_test, self.predict(X_test))
            
-
-# Activation function
-
-def sigmoid(x):
-    return 1./(1 + np.exp(-x))
-
-# Accuracy score functions for classification
-
-def hard_classifier(probability):
-    return (probability >= 0.5)*1
-
-def indicator(target, prediction):
-    return(target==prediction)*1
-    
-def accuracy_score(target, prediction):
-    """
-    Returns the average number of correct predictions
-    """
-    n = len(target)
-    assert len(prediction) == n, "Not the same number of predictions as targets"
-    return np.sum(indicator(target, prediction))/n
-
-if __name__ == '__main__':
-
-    import pandas as pd 
-
-    data = pd.read_csv('data.csv')
-    """
-    The data file contains the following columns: 
-    ['id', 'diagnosis', 'radius_mean', 'texture_mean', 'perimeter_mean', 
-    'area_mean', 'smoothness_mean', 'compactness_mean', 'concavity_mean', 
-    'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean', 
-    'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se', 
-    'compactness_se', 'concavity_se', 'concave points_se', 'symmetry_se', 
-    'fractal_dimension_se', 'radius_worst', 'texture_worst', 'perimeter_worst', 
-    'area_worst', 'smoothness_worst', 'compactness_worst', 'concavity_worst', 
-    'concave points_worst', 'symmetry_worst', 'fractal_dimension_worst', 'Unnamed: 32']
-
-    The column 'Unnamed: 32' only contains NaN values. 
-    The id should not be relevant for the prediction. 
-    I therefore drop these columns.
-    The diagnosis corresponds to the target values.
-    """
-
-    diagnosis = data['diagnosis']
-    diagnosis_int = (diagnosis == 'M')*1
-    predictors = data.drop(['id','diagnosis','Unnamed: 32'], axis='columns')
-
-    X = np.array(predictors)
-    target = np.array(diagnosis_int)
-
-
-    #Shuffle and split into training and test data
-    from sklearn.model_selection import train_test_split
-    X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
-
-    instance = LogisticRegression(X_train, target_train,L2=0.001)
-    instance.train(SGD_ADAM, n_epochs=100, init_lr=0.1)
-    print(instance.weights)
-    import matplotlib.pyplot as plt
-    plt.plot(np.arange(instance.n_epochs), instance.history)
-    plt.show()
-    quit()
-
-
-    # Explore parameter space
-    etas = np.logspace(-5,1,7)
-    lmbds = np.logspace(-5,1,7)
-    train_accuracy = np.zeros((len(etas), len(lmbds)))
-    test_accuracy = np.zeros((len(etas), len(lmbds)))
-
-    for i, eta in enumerate(etas):
-        for j, lmbd in enumerate(lmbds):
-
-            instance = LogisticRegression(X_train, target_train,
-                                    L2 = lmbd)
-            instance.train(optimizer=StochasticGradientDescent, init_lr=eta, batch_size=100, n_epochs=50)
-
-            train_accuracy[i, j] = accuracy_score(target_train, instance.predict(X_train)) 
-            test_accuracy[i, j] = accuracy_score(target_test, instance.predict(X_test))
-
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-
-    train_accuracy = pd.DataFrame(train_accuracy, columns = lmbds, index = etas)
-    test_accuracy = pd.DataFrame(test_accuracy, columns = lmbds, index = etas)
-
-    sns.set()
-    fig, ax = plt.subplots(figsize = (10, 10))
-    sns.heatmap(train_accuracy, annot=True, ax=ax, cmap="viridis")
-    ax.set_title("Training Accuracy")
-    ax.set_ylabel("$\eta$")
-    ax.set_xlabel("$\lambda$")
-    plt.savefig('figures/lnreg_classification/train_accuracy.pdf')
-    plt.savefig('figures/lnreg_classification/train_accuracy.png')
-
-    sns.set()
-    fig, ax = plt.subplots(figsize = (10, 10))
-    sns.heatmap(test_accuracy, annot=True, ax=ax, cmap="viridis")
-    ax.set_title("Test Accuracy")
-    ax.set_ylabel("$\eta$")
-    ax.set_xlabel("$\lambda$")
-    plt.savefig('figures/lnreg_classification/test_accuracy.pdf')
-    plt.savefig('figures/lnreg_classification/test_accuracy.png')
