@@ -1,66 +1,9 @@
 import numpy as np
-from random import random, seed
+from utilities import hard_classifier
 from activation_functions import identity
 np.random.seed(2023)
 
 
-
-# Activation function
-#class sigmoid:
-#    def __init__(self):
-#        pass
-#    def func(self, x):
-#        return 1./(1 + np.exp(-x))
-#    def prime(self, x):
-#        return self.func(x) * (1 - self.func(x))
-
-def sigmoid(x):
-    return 1./(1 + np.exp(-x))
-
-def sigmoid_derivative(x):
-    return sigmoid(x) * (1 - sigmoid(x))
-
-def ReLU(x):
-    return np.maximum(0, x)
-
-def ReLU_derivative(x):
-    return np.heaviside(x, np.zeros_like(x))
-
-def leaky_ReLU(x):
-    return np.maximum(0.01*x, x)
-
-def leaky_ReLU_derivative(x, alpha=0.01):
-    return np.where(x>0, 1, alpha)
-
-def identity(x):
-    return x
-
-def identity_derivative(x):
-    return 1
-
-# Accuracy score functions for classification
-
-def hard_classifier(probability):
-    return (probability >= 0.5)*1
-
-def indicator(target, prediction):
-    return(target==prediction)*1
-    
-def accuracy_score(target, prediction):
-    """
-    Returns the average number of correct predictions
-    """
-    n = len(target)
-    assert len(prediction) == n, "Not the same number of predictions as targets"
-    return np.sum(indicator(target, prediction))/n
-
-def MSE(target, prediction):
-    return np.mean((target - prediction)**2)
-
-def R2(target, prediction):
-  SSE = np.sum((target - prediction)**2)
-  Var = np.sum((target - np.mean(target))**2)
-  return 1 - SSE/Var
 
 class FeedForwardNeuralNetwork:
 

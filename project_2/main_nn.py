@@ -9,7 +9,7 @@ import seaborn as sns
 
 from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative, identity
 from nn_class import FeedForwardNeuralNetwork
-from nn_class import accuracy_score, MSE, R2
+from utilities import accuracy_score, MSE, R2
 from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
 from logreg_gradient_class import LogisticRegression
 from sklearn.linear_model import LogisticRegression as skLogisticRegression

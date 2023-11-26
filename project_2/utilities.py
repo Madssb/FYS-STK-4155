@@ -80,6 +80,28 @@ def convert_to_label(metric_name):
        metric_name = re.sub(r"lasso", "Lasso", metric_name)
     return metric_name
 
+def hard_classifier(probability):
+    return (probability >= 0.5)*1
+
+def indicator(target, prediction):
+    return(target==prediction)*1
+
+def accuracy_score(target, prediction):
+    """
+    Returns the average number of correct predictions
+    """
+    n = len(target)
+    assert len(prediction) == n, "Not the same number of predictions as targets"
+    return np.sum(indicator(target, prediction))/n
+
+def MSE(target, prediction):
+    return np.mean((target - prediction)**2)
+
+def R2(target, prediction):
+  SSE = np.sum((target - prediction)**2)
+  Var = np.sum((target - np.mean(target))**2)
+  return 1 - SSE/Var
+
 
 if __name__ == '__main__':
    pass
