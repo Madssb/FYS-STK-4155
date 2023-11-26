@@ -1,9 +1,10 @@
+# Parts of this code is inspired by Morten Hjort Jensen
+# (https://compphysics.github.io/MachineLearning/doc/LectureNotes/_build/html/intro.html)
+
 import numpy as np
 from utilities import hard_classifier
 from activation_functions import identity
 np.random.seed(2023)
-
-
 
 class FeedForwardNeuralNetwork:
 
@@ -32,6 +33,10 @@ class FeedForwardNeuralNetwork:
         Number of nodes in output (expected to be an integer).
         activation_function : callable
         Activation function (expected to be a callable function).
+        L2 : float
+        L2 regularization parameter (expected to be a float).
+        random_state : int
+        Given random state (expected to be an integer)
 
         Raises
         ------
@@ -49,7 +54,7 @@ class FeedForwardNeuralNetwork:
             raise TypeError("hidden_activation_function must be a callable function.")
         if not callable(hidden_activation_derivative):
             raise TypeError("hidden_activation_derivative must be a callable function.")
-            
+      
 
         # Initialize random state
         self.random_state = random_state
@@ -72,14 +77,14 @@ class FeedForwardNeuralNetwork:
     def initialize_weights_and_biases(self):
         
         """
-        Initialize hidden weights and output weights using
+        Initialize hidden weights for the first layer and output weights using
         a normal distribution with mean=0 and standard deviation=1
         """
         hidden_weights = self.rng.normal(0, 1, (self.n_features, self.n_hidden_neurons))
         output_weights = self.rng.normal(0, 1, self.n_hidden_neurons)
 
         """
-        Initialize hidden bias and output bias using a small number (0.01)
+        Initialize hidden bias for the first layer and output bias using a small number (0.01)
         """
         hidden_bias = np.zeros(self.n_hidden_neurons) + 0.01
         output_bias = 0.01
@@ -89,6 +94,10 @@ class FeedForwardNeuralNetwork:
         self.hidden_bias = hidden_bias
         self.output_bias = output_bias
 
+        """
+        Initialize other hidden weights and bias in the case of multiple hidden layers
+        """
+
         if self.n_hidden_layers > 1: 
             HIDDEN_weights = self.rng.normal(0, 1, (self.n_hidden_neurons, self.n_hidden_neurons, self.n_hidden_layers-1))
             HIDDEN_bias = np.zeros((self.n_hidden_neurons, self.n_hidden_layers-1)) + 0.01
@@ -96,39 +105,61 @@ class FeedForwardNeuralNetwork:
             self.HIDDEN_bias = HIDDEN_bias
 
     def feed_forward_pass(self, X):
+        """
+        Computes the feed-forward pass internally for the network. To be used in when training the model
+        """
+
+        # Create empty arrays for weighted sums and activated neurons for each datapoint in given batch
         batch_size, n_features = np.shape(X)
         self.z_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
         self.a_hidden = np.zeros((batch_size, self. n_hidden_neurons, self.n_hidden_layers))
 
+        # Compute weighted sum and activated values for first hidden layer
         self.z_hidden[:,:,0] = X @ self.hidden_weights + self.hidden_bias
         self.a_hidden[:,:,0] = self.hidden_activation_function(self.z_hidden[:,:,0])
+        
+        # Compute weighted sum and activated values for any other hidden layers
         if self.n_hidden_layers > 1: 
             for l in range(1,self.n_hidden_layers):
-                # Since HIDDEN_weights and HIDDEN_bias apply to layers 2 and on, I have to index them
+                # Since HIDDEN_weights and HIDDEN_bias apply to layers 2 and on, we index them
                 # with "l-1" to get the l-th layer. 
                 self.z_hidden[:,:,l] = self.a_hidden[:,:,l-1] @ self.HIDDEN_weights[:,:,l-1] + self.HIDDEN_bias[:,l-1]
                 self.a_hidden[:,:,l] = self.hidden_activation_function(self.z_hidden[:,:,l])
         
+        # Compute output weighted sum and final output
         self.z_output = self.a_hidden[:,:,-1] @ self.output_weights + self.output_bias
         self.a_output = self.output_activation_function(self.z_output)
 
     def feed_forward_pass_out(self, X):
+        """
+        Computed a feed-forward pass when given a new datasets. Returns the output, which is used for prediction
+        """
+        # Create empty arrays for weighted sums and activated neurons for each datapoint in input data
         n_inputs, n_features = np.shape(X)
         z_hidden = np.zeros((n_inputs, self.n_hidden_neurons, self.n_hidden_layers))
         a_hidden = np.zeros((n_inputs, self.n_hidden_neurons, self.n_hidden_layers))
+        
+        # Compute weighted sum and activated values for first hidden layer
         z_hidden[:,:,0] = X @ self.hidden_weights + self.hidden_bias
         a_hidden[:,:,0] = self.hidden_activation_function(z_hidden[:,:,0])
+        
+        # Compute weighted sum and activated values for any other hidden layers
         if self.n_hidden_layers > 1:
             for l in range(1,self.n_hidden_layers):
                 # Since HIDDEN_weights and_bias apply to layers 2 and on, the index l corresponds to get the (l+1)-th layer. 
                 z_hidden[:,:,l] = a_hidden[:,:,l-1] @ self.HIDDEN_weights[:,:,l-1] + self.HIDDEN_bias[:,l-1]
                 a_hidden[:,:,l] = self.hidden_activation_function(z_hidden[:,:,l])
+        
+        # Compute output weighted sum and final output
         z_output = a_hidden[:,:,-1] @ self.output_weights + self.output_bias
         a_output = self.output_activation_function(z_output)
     
         return a_output
     
     def predict(self, X):
+        """
+        Gives a prediction dependent on the output activation function. Performs a hard classification if the output is probability
+        """
         a_output = self.feed_forward_pass_out(X)
         if self.output_activation_function==identity:
             return a_output
@@ -136,21 +167,28 @@ class FeedForwardNeuralNetwork:
             return hard_classifier(a_output)
 
     def back_propagation(self, X, Y, model_parameters):
+        """
+        The backpropagation algorithm for training the neural network. Outputs the gradients of the weights and biases
+        """
         batch_size, n_features = np.shape(X)
         if self.n_hidden_layers > 1:
             [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias] = model_parameters
         else:
             [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias] = model_parameters
         
+        # Perform feed-forward pass
         self.feed_forward_pass(X)
         
+        # Evaluate cost of the output and compute gradients for output weights and bias
         error_output = self.a_output - Y
         self.output_weights_gradient = self.a_hidden[:,:,-1].T @ error_output
         self.output_bias_gradient = np.sum(error_output)
         
-        error_output = np.expand_dims(error_output,1) # Broadcast the vector to allow matrix multiplication
-        output_weights = np.expand_dims(self.output_weights,1) # Broadcast the vector to allow matrix multiplication
+        # Broadcast vectors to allow matrix multiplication
+        error_output = np.expand_dims(error_output,1) 
+        output_weights = np.expand_dims(self.output_weights,1)
 
+        # Compute gradients by backpropagating cost through hidden layers
         error_hidden = np.zeros((batch_size, self.n_hidden_neurons, self.n_hidden_layers))
         error_hidden[:,:,-1] = error_output @ output_weights.T * self.hidden_activation_derivative(self.z_hidden[:,:,-1])
 
@@ -166,15 +204,17 @@ class FeedForwardNeuralNetwork:
                 self.HIDDEN_bias_gradient[:,l-1] = np.sum(error_hidden[:,:,l], axis=0)
             error_hidden[:,:,0] = error_hidden[:,:,1] @ self.HIDDEN_weights[:,:,0].T * self.hidden_activation_derivative(self.z_hidden[:,:,0])
         
+        # Gradients in the first hidden layer
         self.hidden_weights_gradient = X.T @ error_hidden[:,:,0]
         self.hidden_bias_gradient = np.sum(error_hidden[:,:,0], axis=0)
         
-        # Regularization term
+        # Add regularization term from cost function to gradients
         self.output_weights_gradient += self.L2 * self.output_weights
         self.hidden_weights_gradient += self.L2 * self.hidden_weights
         if self.n_hidden_layers > 1:
             self.HIDDEN_weights_gradient += self.L2*self.HIDDEN_weights_gradient
 
+        # Output gradients
         if self.n_hidden_layers > 1:
             return [self.output_weights_gradient, self.output_bias_gradient, self.hidden_weights_gradient, self.hidden_bias_gradient, self.HIDDEN_weights_gradient, self.HIDDEN_bias_gradient]
         else:
@@ -182,7 +222,9 @@ class FeedForwardNeuralNetwork:
     
 
     def train(self, optimizer, n_epochs=10, init_lr=0.1, batch_size=100, momentum=0.0, evaluation_func=None, history=False, t_test=None, X_test=None):
-        
+        """
+        Train the model using an SGD optimizer of choice
+        """
         self.n_epochs = n_epochs
         if self.n_hidden_layers > 1:
             model_parameters = [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias]
@@ -196,17 +238,21 @@ class FeedForwardNeuralNetwork:
                               init_lr = init_lr, batch_size=batch_size,
                               momentum = momentum,random_state=self.random_state)
         
+        # Empty array to store history of model performance
         if history == True:
             self.history = np.zeros((len(evaluation_func) ,n_epochs))
 
 
         for i in range(self.n_epochs):
+            # Perform gradient descent-based optimization
             model_parameters = optimizer.advance(model_parameters)
+            # Update model parameters
             if self.n_hidden_layers > 1:
                 [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias, self.HIDDEN_weights, self.HIDDEN_bias] = model_parameters
             else:
                 [self.output_weights, self.output_bias, self.hidden_weights, self.hidden_bias] = model_parameters
             
+            # Store model performance
             if history == True:
                 for j, eval_func in enumerate(evaluation_func):
                     self.history[j, i] = eval_func(t_test, self.predict(X_test))
