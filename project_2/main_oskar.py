@@ -1,4 +1,5 @@
-# Import external packages
+""" File for generating Feedforward neural network figures and logistic regression figures. """
+
 import matplotlib.pylab as pylab
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,16 +7,15 @@ import pandas as pd
 import warnings
 import seaborn as sns
 
-# Import self-made packages
 from activation_functions import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative, identity
 from nn_class import FeedForwardNeuralNetwork
-from nn_class import hard_classifier, indicator, accuracy_score, MSE, R2
+from nn_class import accuracy_score, MSE, R2
 from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
 from logreg_gradient_class import LogisticRegression
 from sklearn.linear_model import LogisticRegression as skLogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
-from FrankeFunction import franke_function, features_polynomial_2d
+from utilities import franke_function
 from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
 
@@ -39,37 +39,6 @@ params = {'legend.fontsize': 25,
 
 
 
-def gradient_decent_plots(epochs=100):
-    # franke function
-    points = 100
-    x = np.arange(0, 1, 1/points)
-    y = np.arange(0, 1, 1/points) 
-    x_mesh, y_mesh = np.meshgrid(x, y)
-    datagrid = [x_mesh, y_mesh]
-    analytic = franke_function(x_mesh, y_mesh)
-    noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
-    target = (analytic + noise).ravel()
-    features = features_polynomial_2d(x, y, degree=10)
-    # degree = 10
-    # poly = PolynomialFeatures(degree=degree)
-    # features = poly.fit_transform(np.concatenate(np.stack([datagrid[i] for i in range(0, len(datagrid))], axis=-1), axis=0))
-    # print(np.shape(features))
-    # exit()
-
-    X_train, X_test, target_train, target_test = train_test_split(features, target, test_size=0.2)
-
-    # for epoch in range(epochs):
-    #     optimizer = SGD_const(X_train, f_train, gradient_func=)
-
-
-    nn = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=20, L2=0.001,
-                                output_activation_function=identity, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
-    nn.train(SGD_const, evaluation_func=MSE, n_epochs=50, batch_size=len(X_train), init_lr=0.1)
-
-    plt.plot(x, y, label='real')
-    plt.plot(x, nn.predict(x), label='model')
-    plt.legend()
-    plt.show()
 
 def nn_regression_network_OLS_batchsize(learning_method=SGD_const):
     np.random.seed(2023)
@@ -369,7 +338,9 @@ def nn_classification_network(sklearn=False, layer_func=sigmoid):
             sklearn : (bool) default=False
                 Allows to get the accuracy scores using sklearns
                 logistic regression method for comparison.
-                """
+        Returns:
+            None
+    """
     np.random.seed(2023)
     data = pd.read_csv('data.csv')
     
@@ -390,23 +361,6 @@ def nn_classification_network(sklearn=False, layer_func=sigmoid):
     layers = 2
     neurons = 30
     accuracies = np.zeros((len(methods), len(l2s), len(etas)))
-
-    # if sklearn == True:
-    #     sk_accuracy = np.zeros(len(l2s))
-    #     for i, l2 in enumerate(l2s):
-    #         if l2 == 0:
-    #             logreg = skLogisticRegression(solver='lbfgs', max_iter=1000)
-    #         else:
-    #             logreg = skLogisticRegression(solver='lbfgs', max_iter=1000, penalty='l2', C=l2)
-
-    #         logreg.fit(X_train, target_train)
-    #         sk_accuracy[i] = logreg.score(X_test, target_test)
-    #     print('Accuracies using sklearns Logistic Regression')
-    #     df = pd.DataFrame({'L2 penalty parameter': l2s, 'Accuracy': sk_accuracy})
-    #     table = df.to_markdown(index=False)
-    #     print(table)
-
-    # histories = np.zeros(len)
 
     for i, method in enumerate(methods):
         print(f'Grid search with {method.__name__} ongoing:')
@@ -448,10 +402,6 @@ def nn_classification_network(sklearn=False, layer_func=sigmoid):
         # ax.set_title(f'Logistic regression with:\n{method.__name__} | epochs {epochs} | batch size {batch_size}')
         ax.set_xlabel("Initial learning rate $\eta$")
         ax.set_ylabel("$L_2$ regularization parameter")
-        # ax.set_yscale("symlog")
-        # ax.set_xscale("symlog")
-        # ax.ticklabel_format(style='scientific')
-        # ax.set_yticks(f'{l2s:e}')
         x_ticks = [fr'$10^{{{int(np.log10(eta))}}}$' for eta in etas]
         ax.set_xticklabels(x_ticks)
         y_ticks = [fr'$10^{{{int(np.log10(l2))}}}$' if l2 != 0 else '0' for l2 in l2s]
@@ -484,7 +434,6 @@ def nn_classification_network_layers_neurons(learning_method=SGD_const, layer_fu
     # batch_sizes = [2**i for i in range(4, 8)]
 
     accuracies = np.zeros((len(methods), len(layers),len(neurons)))
-    # constant learning rate
 
     for i, method in enumerate(methods):
         for j, l in enumerate(layers):
@@ -607,23 +556,16 @@ def logreg_network(sklearn=False):
         fig, ax = plt.subplots()
         sns.heatmap(accuracy, annot=True, ax=ax, cmap="viridis",
                     cbar_kws={'label': 'Accuracy'})
-        # ax.set_title(f'Logistic regression with:\n{method.__name__} | epochs {epochs} | batch size {batch_size}')
         ax.set_xlabel("Initial learning rate $\eta$")
         ax.set_ylabel("$L_2$ regularization parameter")
-        # ax.set_yscale("symlog")
-        # ax.set_xscale("symlog")
-        # ax.ticklabel_format(style='scientific')
-        # ax.set_yticks(f'{l2s:e}')
         x_ticks = [fr'$10^{{{int(np.log10(eta))}}}$' for eta in etas]
         ax.set_xticklabels(x_ticks)
         y_ticks = [fr'$10^{{{int(np.log10(l2))}}}$' if l2 != 0 else '0' for l2 in l2s]
         ax.set_yticklabels(y_ticks, rotation=0)
-        # ax.set_yticklabels(['1e{:.0f}'.format(np.log10(l2)) for l2 in l2s])
         ax.add_patch(plt.Rectangle((0, 6), accuracy.shape[1], 1, fill=False, edgecolor='black', lw=3))
         plt.tight_layout()
         plt.savefig(f'figures/logreg/logreg_network_{method.__name__}_epochs_{epochs}_batch_size_{batch_size}.pdf', bbox_inches='tight')
-        # exit()
-        # plt.show()
+
 
 def logreg_history():
     data = pd.read_csv('data.csv')
@@ -662,37 +604,11 @@ def logreg_history():
     plt.plot(np.arange(epochs), logreg_ADAM.history, label=f'{methods[3].__name__}'.strip('SGD_'))
     plt.legend()
     plt.show()
-    # etas = [1e-4, 1.7, 1, 0.4] # mads veridene
-    # histories = np.zeros((len(methods)))
-    # # constant learning rate
-    # logreg_const = LogisticRegression(X_train, target_train, L2=0)
-    # logreg_const.train(optimizer=methods[0], init_lr=1e-4, batch_size=batch_size, n_epochs=epochs,
-    #                    history=True, t_test=target_test, X_test=X_test)
-    # plt.plot(np.arange(epochs), logreg_const.history, label=f'{methods[0].__name__}_eta{etas[0]}')
-    # # plt.show()
-    # logreg_AdaGrad = LogisticRegression(X_train, target_train, L2=l2)
-    # logreg_AdaGrad.train(optimizer=methods[1], init_lr=1.7, batch_size=batch_size, n_epochs=epochs,
-    #                    history=True, t_test=target_test, X_test=X_test)
-    # plt.plot(np.arange(epochs), logreg_AdaGrad.history, label=f'{methods[1].__name__}_eta{etas[1]}')
-    # # plt.show()
-    # logreg_RMSProp = LogisticRegression(X_train, target_train, L2=0)
-    # logreg_RMSProp.train(optimizer=methods[2], init_lr=1, batch_size=batch_size, n_epochs=epochs,
-    #                    history=True, t_test=target_test, X_test=X_test)
-    # plt.plot(np.arange(epochs), logreg_RMSProp.history, label=f'{methods[2].__name__}_eta{etas[2]}')
-    # # plt.show()
-    # logreg_ADAM = LogisticRegression(X_train, target_train, L2=l2)
-    # logreg_ADAM.train(optimizer=methods[3], init_lr=0.4, batch_size=batch_size, n_epochs=epochs,
-    #                    history=True, t_test=target_test, X_test=X_test)
-    # plt.plot(np.arange(epochs), logreg_ADAM.history, label=f'{methods[3].__name__}_eta{etas[3]}')
-    # plt.legend()
-    # plt.show()
 
 
 
 if __name__ == '__main__':
     warnings.filterwarnings('ignore', category=ConvergenceWarning) # to quell sklearns convergence warnings 
-
-    # gradient_decent_plots()
     # nn_regression_network_OLS_batchsize()
     # nn_regression_network_OLS_structure(learning_method=SGD_const)
     # nn_regression_network_eta_l2(learning_method=SGD_const)

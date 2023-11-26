@@ -12,8 +12,17 @@ import seaborn as sns
 # Import self-made packages
 from nn_class import FeedForwardNeuralNetwork
 from nn_class import sigmoid, sigmoid_derivative, ReLU, ReLU_derivative, leaky_ReLU, leaky_ReLU_derivative, identity
-from nn_class import hard_classifier, indicator, accuracy_score, MSE
+from nn_class import hard_classifier, indicator, accuracy_score, MSE, R2
 from SGD import SGD_const, SGD_AdaGrad, SGD_RMSProp, SGD_ADAM
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.model_selection import train_test_split
+from FrankeFunction import franke_function, features_polynomial_2d
+
+def scaling(data_to_scale):
+		scaler = StandardScaler()
+		scaler.fit(data_to_scale)
+		data_scaled = scaler.transform(data_to_scale)
+		return data_scaled
 
 # Plot formatting
 sns.set_theme()
@@ -82,8 +91,8 @@ def simple_polynomial_GD(random_state=2023):
             print("Number of iterations before convergence: ", i)
             break
         theta = new_theta
-    print(MSE(y, X @ theta))
-    quit()
+    # print(MSE(y, X @ theta))
+    # quit()
     for i in range(10):
         new_theta = gradient_descent_momentum.advance(theta)
         if abs(new_theta - theta).all() < tolerance:
@@ -94,27 +103,55 @@ def simple_polynomial_GD(random_state=2023):
     plt.scatter(x, X @ theta, label = 'GD', s = 5)
     #plt.scatter(x, X @ theta_momentum, label = 'GD Momentum', s = 7)
     plt.legend()
-    #plt.show()
+    plt.show()
 
 def nn_regression(random_state=2023):
 
     # Fix random numbers
     rng = np.random.RandomState(random_state)
 
-    n = 100
-    #x = np.expand_dims(np.linspace(-10, 10, 100), 1)
-    x = rng.rand(n)
-    y = rng.rand(n)
+    # n = 100
+    # # # #x = np.expand_dims(np.linspace(-10, 10, 100), 1)
+    # x = rng.rand(n)
+    # y = rng.rand(n)
+    # x_mesh, y_mesh = np.meshgrid(x, y)
+    # z = franke_function(x_mesh, y_mesh)
+    
+    points = 100
+    x = np.arange(0, 1, 1/points)
+    y = np.arange(0, 1, 1/points)
+    # x_mesh, y_mesh = np.meshgrid(x, y)
+    # z = franke_function(x_mesh, y_mesh)
     z = franke_function(x, y)
+    # print(np.shape(z))
+    # exit()
+    # noise = np.random.normal(0, 1, x_mesh.shape)*0.1 # dampened noise
+    # z = z + noise
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # surface = ax.plot_surface(x_mesh, y_mesh, z, cmap='viridis')
+    # plt.plot(x, z)
+    # plt.show()
+    # # print(np.min(z), np.max(z))
+    # exit()
 
     #y = 2 + 3 * x + 4 * x**2
     X = np.array([x, y]).T
+    # X = features_polynomial_2d(x, y, degree=10)
 
-    nn = FeedForwardNeuralNetwork(X, z, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
+    # X_train, X_test, target_train, target_test = train_test_split(X, z, test_size=0.5)
+    # X_train = scaling(X_train)
+    # target_train = scaling(target_train)
+
+    # nn = FeedForwardNeuralNetwork(X_train, target_train, n_hidden_layers=2, n_hidden_neurons=50, L2=0.001,
+    #                             output_activation_function=identity, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
+    nn = FeedForwardNeuralNetwork(X, z, n_hidden_layers=2, n_hidden_neurons=50, L2=0,
                                 output_activation_function=identity, hidden_activation_function=sigmoid, hidden_activation_derivative=sigmoid_derivative)
-    nn.train(SGD_RMSProp, evaluation_func=MSE, n_epochs=300, batch_size=32, init_lr=0.001)
+    nn.train(SGD_const, evaluation_func=[MSE, R2], n_epochs=300, batch_size=32, init_lr=0.1, history=True)
     
-    plt.plot(np.arange(300), nn.history)
+    plt.plot(np.arange(300), nn.history[0])
+    plt.plot(np.arange(300), nn.history[1])
     plt.show()
 
 def nn_classification():
@@ -203,7 +240,7 @@ def logistic_regression():
     X_train, X_test, target_train, target_test = train_test_split(X, target, test_size=0.2)
 
     instance = LogisticRegression(X_train, target_train,L2=0.001)
-    instance.train(SDG_ADAM, n_epochs=100, init_lr=0.1)
+    instance.train(SGD_ADAM, n_epochs=100, init_lr=0.1)
     print(instance.weights)
     import matplotlib.pyplot as plt
     plt.plot(np.arange(instance.n_epochs), instance.history)
@@ -257,7 +294,7 @@ if __name__ == '__main__':
     random_seed=2023
 
     # Analysis of the GD and SGD codes
-    simple_polynomial_GD(random_seed)
+    # simple_polynomial_GD(random_seed)
 
     # Neural network regression
-    #nn_regression(random_seed)
+    nn_regression(random_seed)
