@@ -1,8 +1,13 @@
+# Parts of this code is inspired by Morten Hjort Jensen
+# (https://compphysics.github.io/MachineLearning/doc/LectureNotes/_build/html/intro.html)
 
 import numpy as np
 
 
 class SGD_const:
+    """
+    Stochastic Gradient Descent with fixed learning rate
+    """
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size, momentum = 0.0, random_state=2023):
@@ -46,6 +51,9 @@ class SGD_const:
         return new_model_parameters
 
 class SGD_AdaGrad:
+    """
+    Stochastic Gradient Descent with Adaptive Gradient
+    """
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size, momentum=0.0,
@@ -97,6 +105,9 @@ class SGD_AdaGrad:
         return model_parameters
 
 class SGD_RMSProp:
+    """
+    Stochastic Gradient Descent with Root Mean Squared Propagation
+    """
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
@@ -150,6 +161,9 @@ class SGD_RMSProp:
         return model_parameters
 
 class SGD_ADAM:
+    """
+    Stochastic Gradient Descent with Adam
+    """
     def __init__(self, X_data, Y_data, 
                 gradient_func, init_model_parameters, 
                 init_lr, batch_size,
