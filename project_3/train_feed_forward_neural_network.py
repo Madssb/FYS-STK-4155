@@ -11,8 +11,27 @@ norway_timezone = pytz.timezone('Europe/Oslo')
 
 features = np.load("features_256x256.npy")
 labels = np.load("labels.npy")
+labels = np.array([label.strip() for label in labels])
+assert all(label for label in labels)
 cloud_types = ["Ac", "As", "Cb", "Cc", "Ci", "Cs", "Ct", "Cu", "Ns", "Sc", "St"]
-assert all(label in cloud_types for label in labels), "Not all labels are valid cloud types"
+invalid_labels = []
+
+for label in labels:
+    if label not in cloud_types:
+        invalid_labels.append(label)
+
+if invalid_labels:
+    # Limit the number of invalid labels displayed
+    max_display = 10  # Change this value to display more or fewer labels
+    invalid_labels_display = invalid_labels[:max_display]
+    num_invalid_labels = len(invalid_labels)
+
+    if num_invalid_labels <= max_display:
+        error_message = f"All {num_invalid_labels} labels are not valid cloud types: {', '.join(invalid_labels_display)}"
+    else:
+        error_message = f"{num_invalid_labels} labels are not valid cloud types. First {max_display} invalid labels: {', '.join(invalid_labels_display)}"
+    
+    assert False, error_message
 
 onehot_encoder = OneHotEncoder(sparse=False)
 onehot_labels =  onehot_encoder.fit_transform(np.array(labels).reshape(-1, 1))
