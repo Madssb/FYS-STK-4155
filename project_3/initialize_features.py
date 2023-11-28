@@ -97,7 +97,7 @@ def image_diagnostics():
 
 
 
-def features_and_targets_feed_forward_neural_network(image_size=(28)):
+def features_and_targets_feed_forward_neural_network(image_size=(256, 256)):
     """produce features and labels compatible with feed forward neural network.
     """
     dir = Path.cwd()
@@ -112,8 +112,6 @@ def features_and_targets_feed_forward_neural_network(image_size=(28)):
         print(i)
         features[i, :], labels[i] = get_feature_and_label_feed_forward(image_filename)
     return features, labels
-    
-
 
 
 if __name__ == "__main__":
