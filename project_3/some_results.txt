@@ -1,0 +1,85 @@
+made it past assertion
+hidden layer config: 50
+starting training  2023-11-29 02:38:52.992194+01:00
+/home/mads/.local/lib/python3.11/site-packages/sklearn/neural_network/_multilayer_perceptron.py:691: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (200) reached and the optimization hasn't converged yet.
+  warnings.warn(
+finished training  2023-11-29 02:45:50.348745+01:00
+trained sore: 0.0
+hidden layer config: (50, 50)
+starting training  2023-11-29 02:45:50.558803+01:00
+finished training  2023-11-29 02:47:37.043378+01:00
+trained sore: 0.04874213836477988
+hidden layer config: (50, 50, 50)
+starting training  2023-11-29 02:47:37.184134+01:00
+finished training  2023-11-29 02:50:38.400281+01:00
+trained sore: 0.0
+hidden layer config: (50, 50, 50, 50)
+starting training  2023-11-29 02:50:38.565531+01:00
+finished training  2023-11-29 02:51:02.971267+01:00
+trained sore: 0.014150943396226415
+hidden layer config: 100
+starting training  2023-11-29 02:51:03.113651+01:00
+finished training  2023-11-29 02:52:03.615156+01:00
+trained sore: 0.059748427672955975
+hidden layer config: (100, 100)
+starting training  2023-11-29 02:52:03.760035+01:00
+finished training  2023-11-29 02:52:46.147409+01:00
+trained sore: 0.009433962264150943
+hidden layer config: (100, 100, 100)
+starting training  2023-11-29 02:52:46.344927+01:00
+finished training  2023-11-29 03:01:12.218459+01:00
+trained sore: 0.040880503144654086
+hidden layer config: (100, 100, 100, 100)
+starting training  2023-11-29 03:01:12.414914+01:00
+finished training  2023-11-29 03:03:36.032951+01:00
+trained sore: 0.05345911949685535
+hidden layer config: 200
+starting training  2023-11-29 03:03:36.188714+01:00
+finished training  2023-11-29 03:06:43.038582+01:00
+trained sore: 0.08018867924528301
+hidden layer config: (200, 200)
+starting training  2023-11-29 03:06:43.213869+01:00
+finished training  2023-11-29 03:08:37.370584+01:00
+trained sore: 0.006289308176100629
+hidden layer config: (200, 200, 200)
+starting training  2023-11-29 03:08:37.581727+01:00
+finished training  2023-11-29 03:14:45.601028+01:00
+trained sore: 0.0
+hidden layer config: (200, 200, 200, 200)
+starting training  2023-11-29 03:14:45.772700+01:00
+finished training  2023-11-29 03:17:34.463002+01:00
+trained sore: 0.08490566037735849
+hidden layer config: 200
+starting training  2023-11-29 03:17:34.673082+01:00
+finished training  2023-11-29 03:20:37.832332+01:00
+trained sore: 0.08018867924528301
+hidden layer config: (400, 400)
+starting training  2023-11-29 03:20:38.035847+01:00
+finished training  2023-11-29 03:36:10.371528+01:00
+trained sore: 0.0
+hidden layer config: (400, 400, 400)
+starting training  2023-11-29 03:36:10.671136+01:00
+finished training  2023-11-29 03:45:39.269772+01:00
+trained sore: 0.0
+hidden layer config: (400, 400, 400, 400)
+starting training  2023-11-29 03:45:39.537328+01:00
+finished training  2023-11-29 03:50:44.559725+01:00
+trained sore: 0.026729559748427674
+hidden layer config: 800
+starting training  2023-11-29 03:50:44.834928+01:00
+/home/mads/.local/lib/python3.11/site-packages/sklearn/neural_network/_multilayer_perceptron.py:691: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (200) reached and the optimization hasn't converged yet.
+  warnings.warn(
+finished training  2023-11-29 05:47:17.053847+01:00
+trained sore: 0.0
+hidden layer config: (800, 800)
+starting training  2023-11-29 05:47:17.656650+01:00
+finished training  2023-11-29 06:36:21.184534+01:00
+trained sore: 0.0
+hidden layer config: (800, 800, 800)
+starting training  2023-11-29 06:36:21.664565+01:00
+finished training  2023-11-29 07:32:19.954774+01:00
+trained sore: 0.0031446540880503146
+hidden layer config: (800, 800, 800, 800)
+starting training  2023-11-29 07:32:20.452087+01:00
+finished training  2023-11-29 08:43:00.674549+01:00
+trained sore: 0.1540880503144654
