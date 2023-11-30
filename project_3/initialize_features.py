@@ -34,7 +34,7 @@ def read_image(jpg_path: Path, image_size: tuple=(256, 256),
     image = image.resize(image_size, resample=resample)
     if increase_contrast:
         enhancer = ImageEnhance.Contrast(image)
-        image.enhance(10)
+        enhancer.enhance(10)
     rgb_array = np.array(image, dtype=int)
     return rgb_array
 
@@ -210,7 +210,8 @@ def features_and_labels_convolutional_neural_network(image_size=(128, 128)):
     images = np.empty((n_images, image_size[0], image_size[1], 3))
 
 if __name__ == "__main__":
-    features_and_labels_feed_forward_neural_network(image_size=(256, 256))
+    # features_and_labels_feed_forward_neural_network(image_size=(256, 256))
+    features_and_labels_feed_forward_neural_network_high_contrast()
 
 
 

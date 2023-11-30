@@ -68,7 +68,33 @@ def something():
 
 
 
+def train_128_high_contrast():
+    norway_timezone = pytz.timezone('Europe/Oslo')
+    features = np.load("128x128/features_ffnn_high_contrast.npy")
+    labels = np.load("labels.npy")    
+    architechtures = [(800, 800, 800, 800),
+                      (1600),
+                      (1600, 1600),
+                      (1600, 1600, 1600)]
+    onehot_encoder = OneHotEncoder()
+    onehot_labels =  onehot_encoder.fit_transform(np.array(labels).reshape(-1, 1))
 
+    features_train, features_test, labels_train, labels_test = train_test_split(features, onehot_labels, random_state=1, shuffle=True)
+    for i, architechture in enumerate(architechtures):
+        print(f"hidden layer config: {architechture}")
+        start_train_time_norway = datetime.datetime.now(norway_timezone)
+        print("starting training ",start_train_time_norway)
+        clf = MLPClassifier(random_state=1, hidden_layer_sizes=architechture)
+        clf.fit(features_train, labels_train)
+        finish_train_time_norway = datetime.datetime.now(norway_timezone)
+        print("finished training ", finish_train_time_norway)
+        model_params = clf.get_params()
+        with open(f'model_weights_ffnn_128x128_{architechture[0]}{len(architechture)}.json', 'w') as json_file:
+            json.dump(model_params, json_file, indent=4)
+        score_trained  = clf.score(features_test, labels_test)
+        print("trained sore:",score_trained)
+
+    # print("improvement:", score_trained - score_untrained)  
 def train_256():
     norway_timezone = pytz.timezone('Europe/Oslo')
     features = np.load("128/features_ffnn.npy")
@@ -97,4 +123,5 @@ def train_256():
     print("trained sore:",score_trained)
 
 if __name__ == "__main__":
-    train_256()
+    train_128_high_contrast()
+    # train_256()
