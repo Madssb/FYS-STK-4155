@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import tensorflow as tf
 import random
 
@@ -17,7 +18,7 @@ from sklearn.preprocessing import LabelBinarizer
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
 figure_dir = 'figures/cnn/'
-unique_dir = 'cloudnet_100epochs_augmentFalse/'
+unique_dir = 'cloudnet_20epochs_augmentFalse_optimizerSGD_lr0.001mom0.9/'
 if not os.path.exists(figure_dir+unique_dir):
    os.makedirs(figure_dir+unique_dir)
 
@@ -105,7 +106,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(valy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_val.png")
 plt.show()
 
@@ -114,11 +115,13 @@ y_binary_test = label_binarizer.transform(valy)
 
 fig, ax = plt.subplots(figsize=(6, 6))
 
-for class_id in range(11):
+colors = list(mcolors.TABLEAU_COLORS.keys()) + ["black"]
+for class_id in range(len(Name)):
     RocCurveDisplay.from_predictions(
         y_binary_test[:, class_id],
         y_pred[:, class_id],
-        name=f"ROC curve for {reverse_mapping[class_id]}",
+        color=colors[class_id],
+        name=f"{reverse_mapping[class_id]}",
         ax=ax,
         plot_chance_level=(class_id == 2),
     )
@@ -128,6 +131,7 @@ plt.xlabel("False Positive Rate")
 plt.ylabel("True Positive Rate")
 plt.title("Receiver Operating Characteristic\n One-vs-Rest")
 plt.legend()
+plt.grid()
 plt.savefig(figure_dir+unique_dir+"roccurve_val.png")
 plt.show()
 
@@ -138,7 +142,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(testy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_test.png")
 plt.show()
 
@@ -147,11 +151,13 @@ y_binary_test = label_binarizer.transform(testy)
 
 fig, ax = plt.subplots(figsize=(6, 6))
 
-for class_id in range(11):
+colors = list(mcolors.TABLEAU_COLORS.keys()) + ["black"]
+for class_id in range(len(Name)):
     RocCurveDisplay.from_predictions(
         y_binary_test[:, class_id],
         y_pred[:, class_id],
-        name=f"ROC curve for {reverse_mapping[class_id]}",
+        color=colors[class_id],
+        name=f"{reverse_mapping[class_id]}",
         ax=ax,
         plot_chance_level=(class_id == 2),
     )
@@ -161,8 +167,11 @@ plt.xlabel("False Positive Rate")
 plt.ylabel("True Positive Rate")
 plt.title("Receiver Operating Characteristic\n One-vs-Rest")
 plt.legend()
+plt.grid()
 plt.savefig(figure_dir+unique_dir+"roccurve_test.png")
 plt.show()
+
+# Visualize history
 
 get_acc = history['accuracy']
 value_acc = history['val_accuracy']
@@ -175,6 +184,7 @@ plt.plot(epochs, get_acc, 'r', label='Accuracy of Training data')
 plt.plot(epochs, value_acc, 'b', label='Accuracy of Validation data')
 plt.title('Training vs validation accuracy')
 plt.legend(loc=0)
+plt.grid()
 plt.savefig(figure_dir+unique_dir+"accuracy_training_validation.png")
 plt.show()
 
@@ -183,6 +193,7 @@ plt.figure()
 plt.plot(epochs, get_loss, 'r', label='Loss of Training data')
 plt.plot(epochs, validation_loss, 'b', label='Loss of Validation data')
 plt.title('Training vs validation loss')
+plt.grid()
 plt.legend(loc=0)
 plt.savefig(figure_dir+unique_dir+"loss_training_validation.png")
 plt.show()

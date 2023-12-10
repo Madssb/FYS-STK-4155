@@ -7,16 +7,25 @@ import os
 import tensorflow as tf
 import random
 
-from tensorflow.keras import datasets, layers, models # my import
+from tensorflow.keras import datasets, layers, models
+from tensorflow.keras import optimizers
+from tensorflow.keras import regularizers
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
-num_epochs = 2
+num_epochs = 20
 augmentation = False
-unique_model_dir = model_dir+'cloudnet_{}epochs_augment{}'.format(num_epochs, augmentation)
+optimizer_name = "SGD"
+lr = 0.001
+momentum = 0.9
+unique_model_dir = model_dir+'cloudnet_{}epochs_augment{}_optimizer{}_lr{}mom{}'.format(num_epochs, 
+                                                                                        augmentation, 
+                                                                                        optimizer_name,
+                                                                                        lr,
+                                                                                        momentum)
 if not os.path.exists(unique_model_dir):
    os.makedirs(unique_model_dir)
 
@@ -117,7 +126,15 @@ model.add(layers.Dense(units=11, activation='softmax'))
 
 model.summary()
 
-model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+if optimizer_name == "SGD":
+    optimizer = optimizers.SGD(learning_rate=lr, momentum=momentum)
+elif optimizer_name == "Adam":
+    optimizer = optimizers.Adam(learning_rate=lr)
+else:
+    print("Supply optimizer name 'SGD' or 'Adam'")
+
+#model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+model.compile(optimizer=optimizer,loss='categorical_crossentropy',metrics=['accuracy'])
 
 if augmentation:
     # Generate more variations of images
