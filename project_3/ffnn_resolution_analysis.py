@@ -81,3 +81,35 @@ def get_feature_and_label_feed_forward(
     image_arr = read_image(jpg_path, image_size=image_size, resample=resample)
     flat_image_arr = flatten_image_arr(image_arr)
     return flat_image_arr, label
+
+
+def features_and_labels_feed_forward_neural_network(image_size=(128, 128)):
+    """Produce features and labels compatible with feed forward neural network, given that they dont already exist.
+
+    Parameters
+    ----------
+    image_size : tuple
+    """
+    dir = Path.cwd()
+    image_paths = sorted(dir.rglob("**/*.jpg"))
+    n_images = len(image_paths)
+    n_image_vals = image_size[0]*image_size[1]*3
+    features =  np.empty((n_images, n_image_vals), dtype=int)
+    labels = np.empty(n_images, dtype=f'<U{2}')   
+    for i , image_path in enumerate(image_paths):
+        feature, label = get_feature_and_label_feed_forward(image_path, image_size=image_size)
+        features[i, :] = feature
+        labels[i] = label
+        print(f"{i}/{n_images}")
+    size_str = f"{image_size[0]}x{image_size[1]}"
+    features_filename = Path(f"features_ffnn_{size_str}.npy")
+    labels_filename = Path(f"labels.npy")
+    if not features_filename.is_file():
+        np.save(features_filename, features)
+    if not labels_filename.is_file():
+        np.save(labels_filename, labels)
+
+if __name__ == "__main__":
+    resolutions = [16, 32, 64, 128]
+    for resolution in resolutions:
+        features_and_labels_feed_forward_neural_network(image_size=(resolution, resolution))
