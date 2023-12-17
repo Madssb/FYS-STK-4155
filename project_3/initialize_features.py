@@ -92,48 +92,6 @@ def get_feature_and_label_feed_forward(jpg_path: str, image_size: tuple=(256, 25
     return flat_image_arr, label
 
 
-
-
-def get_feature_and_label_convolutional(jpg_path: str, image_size: tuple=(256, 256),
-                                        resample: Image=Image.LANCZOS,
-                                        increase_contrast=False) -> tuple:
-    """Get feature and label from .jpg for Convolutional neural network.
-    """
-    label = get_label(jpg_path)
-    image_arr = read_image(jpg_path)
-    return image_arr
-
-def diagnostics():
-    """Display sizes of the jpgs used 
-    """
-    dir = Path.cwd()
-    if not dir.is_dir():
-        raise NotADirectoryError
-    
-    image_paths = dir.rglob("**/*.jpg")
-    expected_shape_1 = (400, 400, 3)
-    expected_shape_2 = (256, 256, 3)
-    expected_shape_1_count = 0
-    expected_shape_2_count = 0
-    img_count = 0
-    other_shape_count = 0
-    for image_path in image_paths:
-        image_arr = read_image(image_path)
-        if image_arr.shape == expected_shape_1:
-            expected_shape_1_count +=1
-        elif image_arr.shape == expected_shape_2:
-            expected_shape_2_count += 1
-        else:
-            other_shape_count += 1
-        img_count += 1
-    print(f"""# of images: {img_count}
-# of images with shape {expected_shape_1}: {expected_shape_1_count}
-# of images with shape {expected_shape_2}: {expected_shape_2_count}
-# of images with other shapes {other_shape_count}""")
-    
-
-
-
 def features_and_labels_feed_forward_neural_network(image_size=(128, 128)):
     """Produce features and labels compatible with feed forward neural network, given that they dont already exist.
 
@@ -194,20 +152,6 @@ def features_and_labels_feed_forward_neural_network_high_contrast(image_size=(12
     if not labels_filename.is_file():
         np.save(labels_filename, labels)
 
-
-
-def features_and_labels_convolutional_neural_network(image_size=(128, 128)):
-    """Produce features and labels compatible with feed forward neural network, given that they dont already exist.
-
-    Parameters
-    ----------
-    image_size : tuple
-    """
-    assert image_size[0] == image_size[1], "image size must be square"
-    dir = Path.cwd()
-    image_paths = sorted(dir.rglob("**/*.jpg"))
-    n_images = len(image_paths)
-    images = np.empty((n_images, image_size[0], image_size[1], 3))
 
 if __name__ == "__main__":
     # features_and_labels_feed_forward_neural_network(image_size=(256, 256))
