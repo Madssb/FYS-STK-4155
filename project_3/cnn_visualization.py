@@ -18,9 +18,11 @@ from sklearn.preprocessing import LabelBinarizer
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
 figure_dir = 'figures/cnn/'
-unique_dir = 'cloudnet_20epochs_augmentFalse_optimizerSGD_lr0.001mom0.9/'
+unique_dir = 'cloudnet128_100epochs_augmentFalse_centerTrue_optimizerSGD_lr0.001mom0.9/'
 if not os.path.exists(figure_dir+unique_dir):
    os.makedirs(figure_dir+unique_dir)
+target_size=(128,128)
+#target_size=(227,227)
 
 model = models.load_model(model_dir+unique_dir+'model.keras')
 history = pd.read_csv(model_dir+unique_dir+'history.csv')
@@ -62,7 +64,7 @@ for file in Name:
     path=os.path.join(data_dir,file)
     for im in os.listdir(path):
         # Load images, rescaling to 227 x 227
-        image=load_img(os.path.join(path,im), grayscale=False, color_mode='rgb', target_size=(227,227)) 
+        image=load_img(os.path.join(path,im), grayscale=False, color_mode='rgb', target_size=target_size) 
         image=img_to_array(image)
         # Normalize RGB values to between 0 and 1
         image=image/255.0
@@ -85,6 +87,7 @@ testy=to_categorical(testy0)
 
 # Split into training and test data using shuffled indices
 trainx,valx,trainy,valy=train_test_split(trainx0,y_train,train_val_indices, test_size=0.2)
+
 
 # Print shapes of train, validation and test data
 print('Whole dataset')

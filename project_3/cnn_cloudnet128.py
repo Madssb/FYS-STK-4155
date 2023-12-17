@@ -16,13 +16,15 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
-num_epochs = 50
-augmentation = True
+num_epochs = 100
+augmentation = False
+center = False
 optimizer_name = "AdaGrad"
 lr = 0.01
-momentum = None
-unique_model_dir = model_dir+'cloudnet_{}epochs_augment{}_optimizer{}_lr{}mom{}'.format(num_epochs, 
-                                                                                        augmentation, 
+momentum = 0.9
+unique_model_dir = model_dir+'cloudnet128_{}epochs_augment{}_center{}_optimizer{}_lr{}mom{}'.format(num_epochs, 
+                                                                                        augmentation,
+                                                                                        center, 
                                                                                         optimizer_name,
                                                                                         lr,
                                                                                         momentum)
@@ -63,8 +65,8 @@ count=0
 for file in Name:
     path=os.path.join(data_dir,file)
     for im in os.listdir(path):
-        # Load images, rescaling to 227 x 227
-        image=load_img(os.path.join(path,im), grayscale=False, color_mode='rgb', target_size=(227,227)) 
+        # Load images, rescaling to 128 x 128
+        image=load_img(os.path.join(path,im), grayscale=False, color_mode='rgb', target_size=(128,128)) 
         image=img_to_array(image)
         # Normalize RGB values to between 0 and 1
         image=image/255.0
@@ -95,6 +97,11 @@ np.save(unique_model_dir+'/train_val_indices.npy', K)
 # Split into training and validation data using shuffled indices
 trainx,valx,trainy,valy=train_test_split(trainx0,y_train,K,test_size=0.2)
 
+# Center training data
+if center==True:
+    trainx = trainx - np.mean(trainx, axis=0, keepdims=True)
+    valx = valx - np.mean(valx, axis=0, keepdims=True)
+
 # Print shapes of train, validation and test data
 print('Whole dataset')
 print('X: ', np.shape(datax0))
@@ -110,7 +117,7 @@ print('X: ', np.shape(trainx))
 print('Y: ', np.shape(trainy))
 
 model = tf.keras.models.Sequential()
-model.add(layers.Conv2D(filters=96, kernel_size=(11, 11), activation='relu', input_shape=(227, 227, 3), strides=(4,4)))
+model.add(layers.Conv2D(filters=96, kernel_size=(11, 11), activation='relu', input_shape=(128, 128, 3), strides=(4,4)))
 model.add(layers.MaxPooling2D(pool_size=(3, 3), strides=(2,2)))
 model.add(layers.Conv2D(filters=256, kernel_size=(5, 5), activation='relu', padding='same'))
 model.add(layers.MaxPooling2D(pool_size=(3, 3), strides=(2,2)))
@@ -119,9 +126,9 @@ model.add(layers.Conv2D(filters=256, kernel_size=(3, 3), activation='relu', padd
 model.add(layers.MaxPooling2D(pool_size=(3, 3), strides=(2,2)))
 
 model.add(layers.Flatten())
-model.add(layers.Dense(units=9216, activation='relu'))
+model.add(layers.Dense(units=1024, activation='relu'))
 model.add(layers.Dropout(0.5))
-model.add(layers.Dense(units=4096, activation='relu'))
+model.add(layers.Dense(units=512, activation='relu'))
 model.add(layers.Dense(units=11, activation='softmax'))
 
 model.summary()
@@ -142,9 +149,6 @@ if augmentation:
     # Generate more variations of images
     n = ImageDataGenerator(horizontal_flip=True,vertical_flip=True,rotation_range=20,zoom_range=0.2,
                         width_shift_range=0.2,height_shift_range=0.2,shear_range=0.1,fill_mode="nearest")
-    print(n.flow(trainx, trainy,batch_size=32))
-    print(np.shape(n.flow(trainx, trainy, batch_size=32)))
-    quit()
     hist=model.fit(n.flow(trainx,trainy,batch_size=32),validation_data=(valx,valy),epochs=num_epochs)
 else:
     hist=model.fit(trainx,trainy,validation_data=(valx,valy),epochs=num_epochs)
