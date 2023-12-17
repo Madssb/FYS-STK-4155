@@ -109,7 +109,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(valy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name, normalize='true')
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_val.png")
 plt.show()
 
@@ -145,7 +145,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(testy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name, normalize='true')
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_test.png")
 plt.show()
 
