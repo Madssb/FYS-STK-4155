@@ -333,6 +333,11 @@ def unveil_possible_overfitting():
 
 
 if __name__ == "__main__":
+    """comment and uncomment as needed.
+    All functions require initialize_features() to be called first to 
+    generate appropriate .npy files.
+    """
+    initialize_features()
     # plot_confusion_matrix()
     # unveil_possible_overfitting()
     # size_analysis()
