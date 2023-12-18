@@ -18,7 +18,7 @@ from sklearn.preprocessing import LabelBinarizer
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
 figure_dir = 'figures/cnn/'
-unique_dir = 'cloudnet128_100epochs_augmentFalse_centerTrue_optimizerSGD_lr0.001mom0.9/'
+unique_dir = 'cloudnet128_100epochs_augmentFalse_optimizerSGD_lr0.001mom0.9/'
 if not os.path.exists(figure_dir+unique_dir):
    os.makedirs(figure_dir+unique_dir)
 target_size=(128,128)
@@ -109,7 +109,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(valy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name, normalize='true', values_format='.2f')
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_val.png")
 plt.show()
 
@@ -145,7 +145,7 @@ pred=np.argmax(y_pred,axis=1)
 ground = np.argmax(testy,axis=1)
 print(classification_report(ground,pred))
 
-ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name)
+ConfusionMatrixDisplay.from_predictions(ground, pred, cmap=plt.cm.Blues, display_labels=Name, normalize='true', values_format='.2f')
 plt.savefig(figure_dir+unique_dir+"confusion_matrix_test.png")
 plt.show()
 
