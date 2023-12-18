@@ -15,3 +15,14 @@ else
     echo "The directory 'CCSN_v2' does not exist. Please download and unzip the dataset into this directory before running the project."
 fi
 ```
+
+## File overview
+To initialize and train a CNN model, run one of the following programs:
+- cnn_cloudnet.py: Trains and saves a model on the CCSN dataset using input image size 227x227 pixels
+- cnn_cloudnet128.py: Trains and saves a model on the CCSN dataset using input image size 128x128 pixels
+- cnn_cloudnet28.py: Trains and saves a model on the CCSN dataset using input image size 28x28 pixels
+- cnn_mnist.py: Trains and saves a model on the MNIST dataset
+
+To visualize the model performance, run one of the following programs:
+- cnn_visualization.py: Computes evaluations and creates plots cloud classification models (based on the CCSN dataset)
+- cnn_visalization_mnist.py: Computes evaluations and creates plots of MNIST classification models
