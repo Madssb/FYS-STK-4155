@@ -1,14 +1,19 @@
-from PIL import Image
+"""Analysis of how various image resampling resolutions affect
+the trained model for FFNN for classification of cloud images.
+"""
 import numpy as np
-from pathlib import Path
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
 import time
 import seaborn as sns
+from PIL import Image
+from pathlib import Path
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import confusion_matrix
+from utilities import my_figsize
 
 FILENAMES = [
     "features_ffnn_16x16.npy",
@@ -161,10 +166,10 @@ def feed_forward_neural_network(
     labels = np.load("labels.npy")
     features = np.load(feature_filename)
     features = (features - np.mean(features, axis=0) / np.std(features, axis=0))
-    # assert all(label for label in labels)
-    # cloud_types = ["Ac", "As", "Cb", "Cc", "Ci", "Cs", "Ct", "Cu", "Ns", "Sc", "St"]
-    # for label in labels:
-    #     assert label in cloud_types, f"{label=} not in {cloud_types=}"
+    assert all(label for label in labels)
+    cloud_types = ["Ac", "As", "Cb", "Cc", "Ci", "Cs", "Ct", "Cu", "Ns", "Sc", "St"]
+    for label in labels:
+        assert label in cloud_types, f"{label=} not in {cloud_types=}"
     label_encoder = LabelEncoder()
     integer_labels = label_encoder.fit_transform(labels)
     features_train, features_test, labels_train, labels_test = train_test_split(
@@ -185,65 +190,37 @@ def feed_forward_neural_network(
     return train_accuracy, test_accuracy, elapsed_training_time, clf
 
 
-def ffnn_16x16_regularization():
-    feed_forward_neural_network()
+def plot_confusion_matrix():
+    """Visualize the confusion matrices for the test set for
+    the best performing models
+    """
+    sizes = ["16x16", "32x32", "64x64", "128x128"]
+    for i, size in enumerate(sizes):
+        labels = np.load("labels.npy")
+        features = np.load(FILENAMES[i])
+        features = (features - np.mean(features, axis=0) / np.std(features, axis=0))
+        label_encoder = LabelEncoder()
+        integer_labels = label_encoder.fit_transform(labels)
+        features_train, features_test, labels_train, labels_test = train_test_split(
+            features, integer_labels, random_state=1, shuffle=True
+        )
+        clf = feed_forward_neural_network(FILENAMES[i], (39, 90, 69, 92, 68, 39))[3]
+        # Predict labels for the test dataset
+        predicted_labels = clf.predict(features_test)
 
+        # Compute the confusion matrix
+        conf_matrix = confusion_matrix(labels_test, predicted_labels, normalize="true")
 
-def grid_search():
-    """idk"""
-    architectures = [
-        (50),
-        (50, 50),
-        (50, 50, 50),
-        (50, 50, 50, 50),
-        (100),
-        (100, 100),
-        (100, 100, 100),
-        (100, 100, 100, 100),
-        (200),
-        (200, 200),
-        (
-            200,
-            200,
-            200,
-        ),
-        (200, 200, 200, 200),
-        (400),
-        (400, 400),
-        (
-            400,
-            400,
-            400,
-        ),
-        (400, 400, 400, 400),
-        (800),
-        (800, 800),
-        (
-            800,
-            800,
-            800,
-        ),
-        (800, 800, 800, 800),
-        (1600,),
-        (1600, 1600),
-        (
-            1600,
-            1600,
-            1600,
-        ),
-        (1600, 1600, 1600, 1600),
-    ]
-    for filename in FILENAMES:
-        for architecture in architectures[16:24]:
-            (
-                train_accuracy,
-                test_accuracy,
-                elapsed_training_time,
-                clf
-            ) = feed_forward_neural_network(filename, architecture)
-            print(
-                f"{train_accuracy=:.4g}, {test_accuracy=:.4g}, {clf.n_iter_=:.4g}, {architecture=}"
-            )
+        print("Confusion Matrix:")
+        print(conf_matrix)
+        plt.figure(figsize=my_figsize(column=False))
+        sns.set(font_scale=1.0)  # Adjust font size for readability
+        sns.heatmap(conf_matrix, annot=True, fmt=".2f", cmap="Blues", 
+                    xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
+        plt.xlabel("Predicted Labels")
+        plt.ylabel("True Labels")
+        plt.savefig(f"confusion_{size}.pdf")
+
 
 def gridsearch_architectures(filename):
     """Search for the best architecture for fixed image resolution and activation."""
@@ -266,32 +243,75 @@ def gridsearch_architectures(filename):
             train_accuracy,
             test_accuracy,
             elapsed_training_time,
-            cfl
+            clf
         ) = feed_forward_neural_network(filename, architecture)
         
         # Append the results to the list
         results.append({
             'Train Accuracy': train_accuracy,
             'Test Accuracy': test_accuracy,
-            'Iterations': cfl.n_iter_,
+            'Iterations': clf.n_iter_,
             'Architecture': architecture,
-            'model':_+1
+            'Model':_+1,
+            'depth':len(architecture)
         })
     # Create a DataFrame from the results list
     df = pd.DataFrame(results)
-    # Print the DataFrame
-    print(df)
-    # Create a bar plot using Seaborn to visualize test accuracies for each architecture
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=df, x='model', y='Test Accuracy')
-    plt.xticks(rotation=45)
+    df = df.sort_values(by='Test Accuracy', ascending=False)
+    return df
+
+
+def size_analysis():
+    """Visualize accuracy scores for all models, for each image resolution.
+    """
+    sizes = ["16x16", "32x32", "64x64", "128x128"]
+    for i, size in enumerate(sizes):
+    #for i, size in enumerate(sizes[:-1]):
+        df = gridsearch_architectures(FILENAMES[i])
+        plt.figure(figsize=my_figsize(column=False))
+        bar_width = 0.4  # Width of each bar
+        index = np.arange(len(df))  # Index for x-axis
+        plt.bar(index, df['Train Accuracy'], bar_width, label='Train Accuracy', color='steelblue')
+        plt.bar(index + bar_width, df['Test Accuracy'], bar_width, label='Test Accuracy', color='coral')
+        plt.xticks(index + bar_width / 2, df['Model'])
+        plt.xlabel('Model')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f"accuracies_{size}.pdf")
+
+
+def size_analysis_128():
+    df = gridsearch_architectures(FILENAMES[3])
+    plt.figure(figsize=my_figsize(column=False))
+    bar_width = 0.4  # Width of each bar
+    index = np.arange(len(df))  # Index for x-axis
+    plt.bar(index, df['Train Accuracy'], bar_width, label='Train Accuracy', color='steelblue')
+    plt.bar(index + bar_width, df['Test Accuracy'], bar_width, label='Test Accuracy', color='coral')
+    plt.xticks(index + bar_width / 2, df['Model'])
     plt.xlabel('Model')
-    plt.ylabel('Test Accuracy')
+    plt.ylabel('Accuracy')
+    plt.legend()
     plt.tight_layout()
+    plt.savefig(f"accuracies_128x128.pdf")    
 
-    # Display the plot
-    plt.show()
 
+def best_model_analysis():
+    """show how loss curves for best models evolve.
+    """
+    sizes = ["16x16", "32x32", "64x64", "128x128"]
+    for i, size in enumerate(sizes):
+        if i==3:
+            clf = feed_forward_neural_network(FILENAMES[i], (95, 79))[3]
+        else:
+            clf = feed_forward_neural_network(FILENAMES[i], (39, 90, 69, 92, 68, 39))[3]
+        loss = clf.loss_curve_
+        iters=np.arange(1, len(loss)+1)
+        plt.plot(iters, loss, label=size)
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross-entropy loss")
+    plt.legend()
+    plt.savefig(f"loss.pdf")
 
 
 def unveil_possible_overfitting():
@@ -300,18 +320,10 @@ def unveil_possible_overfitting():
     showing history to uncover possible bias variance.
     """
     architecture=(541, 309, 183, 239, 939, 950)
-    (
-        train_accuracy,
-        test_accuracy,
-        elapsed_training_time,
-        clf
-    ) = feed_forward_neural_network(FILENAMES[0], architecture)  
+    clf = feed_forward_neural_network(FILENAMES[0], architecture)[3]
     loss = clf.loss_curve_
     validation = clf.validation_scores_
     iters=np.arange(1, len(loss)+1)
-    print(
-        f"{train_accuracy=:.4g}, {test_accuracy=:.4g}, {elapsed_training_time=:.4g}, {architecture=}"
-    )
     plt.plot(iters, loss, label="loss")
     plt.plot(iters, validation, label="validation")
     plt.xlabel("epoch")
@@ -320,11 +332,8 @@ def unveil_possible_overfitting():
     plt.show()
 
 
-
 if __name__ == "__main__":
-    gridsearch_architectures(FILENAMES[2])
-    # gridsearch_architecture_32x32_relu()
-    # gridsearch_architecture_64x64_relu()
-    # gridsearch_architecture_128x128_relu()
+    # plot_confusion_matrix()
     # unveil_possible_overfitting()
-    # train_by_input()
+    # size_analysis()
+    # best_model_analysis()
