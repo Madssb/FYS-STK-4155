@@ -1,3 +1,4 @@
+# Initial inspiration from
 # Author: Ahmad Zagar
 # https://www.kaggle.com/code/ahmadzargar/inceptionv3
 
@@ -16,16 +17,18 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 data_dir = 'data/CCSN_v2/'
 model_dir = 'models/cnn/'
-num_epochs = 50
-augmentation = True
-optimizer_name = "AdaGrad"
-lr = 0.01
-momentum = None
-unique_model_dir = model_dir+'cloudnet_{}epochs_augment{}_optimizer{}_lr{}mom{}'.format(num_epochs, 
+num_epochs = 20
+augmentation = False
+optimizer_name = "SGD"
+lr = 0.001
+momentum = 0.9
+batch_size=8
+unique_model_dir = model_dir+'cloudnet_recreate_{}epochs_augment{}_optimizer{}_lr{}mom{}batch{}'.format(num_epochs, 
                                                                                         augmentation, 
                                                                                         optimizer_name,
                                                                                         lr,
-                                                                                        momentum)
+                                                                                        momentum,
+                                                                                        batch_size)
 if not os.path.exists(unique_model_dir):
    os.makedirs(unique_model_dir)
 
@@ -82,7 +85,7 @@ datax1=np.array(datax0)
 datay1=np.array(datay0)
 
 # Split into training and test data using shuffled indices
-trainx0, testx0, trainy0, testy0 = train_test_split(datax1, datay1, M, test_size=0.25)
+trainx0, testx0, trainy0, testy0 = train_test_split(datax1, datay1, M, test_size=0.2)
 
 # Create categorical output for training data
 y_train=to_categorical(trainy0)
@@ -144,10 +147,10 @@ if augmentation:
                         width_shift_range=0.2,height_shift_range=0.2,shear_range=0.1,fill_mode="nearest")
     print(n.flow(trainx, trainy,batch_size=32))
     print(np.shape(n.flow(trainx, trainy, batch_size=32)))
-    quit()
+    # quit()
     hist=model.fit(n.flow(trainx,trainy,batch_size=32),validation_data=(valx,valy),epochs=num_epochs)
 else:
-    hist=model.fit(trainx,trainy,validation_data=(valx,valy),epochs=num_epochs)
+    hist=model.fit(trainx,trainy,validation_data=(valx,valy),epochs=num_epochs, batch_size=batch_size)
 
 # Save model
 model.save(unique_model_dir+'/model.keras')
